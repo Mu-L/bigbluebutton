@@ -1,50 +1,47 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import * as PluginSdk from 'bigbluebutton-html-plugin-sdk';
 import { User } from '/imports/ui/Types/user';
 import {
-  Hooks, HookEvents,
+  HookEvents,
 } from 'bigbluebutton-html-plugin-sdk/dist/cjs/core/enum';
+import { DataConsumptionHooks } from 'bigbluebutton-html-plugin-sdk/dist/cjs/data-consumption/enums';
 import { UpdatedEventDetails } from 'bigbluebutton-html-plugin-sdk/dist/cjs/core/types';
 import formatLoadedUserListDataFromGraphql from './utils';
-import useLoadedUserList from '/imports/ui/core/hooks/useLoadedUserList';
-import { GraphqlDataHookSubscriptionResponse } from '/imports/ui/Types/hook';
+import { useLocalUserList } from '/imports/ui/core/hooks/useLoadedUserList';
+import usePreviousValue from '/imports/ui/hooks/usePreviousValue';
+import { GeneralHookManagerProps } from '../../../types';
 
-const LoadedUserListHookContainer = () => {
-  const [sendSignal, setSendSignal] = useState(false);
-  const usersData: GraphqlDataHookSubscriptionResponse<Partial<User>[]> = useLoadedUserList((user: Partial<User>) => ({
+const LoadedUserListHookContainer = (prop: GeneralHookManagerProps) => {
+  const [usersData] = useLocalUserList((user: Partial<User>) => ({
     userId: user.userId,
     name: user.name,
     role: user.role,
   }));
 
+  const { numberOfUses } = prop;
+  const previousNumberOfUses = usePreviousValue(numberOfUses);
+
   const updateLoadedUserListForPlugin = () => {
     window.dispatchEvent(new CustomEvent<
       UpdatedEventDetails<PluginSdk.GraphqlResponseWrapper<PluginSdk.LoadedUserListData>>
-    >(HookEvents.UPDATED, {
+    >(HookEvents.BBB_CORE_SENT_NEW_DATA, {
       detail: {
         data: formatLoadedUserListDataFromGraphql(usersData),
-        hook: Hooks.LOADED_USER_LIST,
+        hook: DataConsumptionHooks.LOADED_USER_LIST,
       },
     }));
   };
 
   useEffect(() => {
-    updateLoadedUserListForPlugin();
-  }, [usersData, sendSignal]);
+    const previousNumberOfUsesValue = previousNumberOfUses || 0;
+    if (numberOfUses > previousNumberOfUsesValue) {
+      updateLoadedUserListForPlugin();
+    }
+  }, [numberOfUses]);
 
   useEffect(() => {
-    const updateHookUseLoadedUserList = () => {
-      setSendSignal(!sendSignal);
-    };
-    window.addEventListener(
-      HookEvents.SUBSCRIBED, updateHookUseLoadedUserList,
-    );
-    return () => {
-      window.removeEventListener(
-        HookEvents.SUBSCRIBED, updateHookUseLoadedUserList,
-      );
-    };
-  }, []);
+    updateLoadedUserListForPlugin();
+  }, [usersData]);
 
   return null;
 };

@@ -1,7 +1,11 @@
 import styled from 'styled-components';
-import { barsPadding } from '/imports/ui/stylesheets/styled-components/general';
 import { FlexColumn } from '/imports/ui/stylesheets/styled-components/placeholders';
-import { colorBackground } from '/imports/ui/stylesheets/styled-components/palette';
+import {
+  colorBackgroundDarkTheme,
+  colorOverlaysDarkTheme,
+  colorTextDarkTheme,
+  colorPrimaryDarkTheme,
+} from '/imports/ui/stylesheets/styled-components/palette';
 
 const CaptionsWrapper = styled.div`
   height: auto;
@@ -12,25 +16,36 @@ const CaptionsWrapper = styled.div`
   user-select:none;
 `;
 
-const ActionsBar = styled.section`
-  flex: 1;
-  padding: ${barsPadding};
-  background-color: ${colorBackground};
-  position: relative;
-  order: 3;
-`;
-
 const Layout = styled(FlexColumn)``;
 
 const DtfInvert = `
+  :root {
+    --darkreader-bg-neutral-background: ${colorBackgroundDarkTheme} !important;
+    --darkreader-bg--color-background: ${colorBackgroundDarkTheme} !important;
+    --darkreader-bg--color-white: ${colorOverlaysDarkTheme} !important;
+    --darkreader-bg--btn-default-bg: ${colorOverlaysDarkTheme} !important;
+    --darkreader-text--btn-default-color: ${colorTextDarkTheme} !important;
+    --darkreader-text--color-gray-light: ${colorTextDarkTheme} !important;
+    --darkreader-text--color-text: ${colorTextDarkTheme} !important;
+    --darkreader-text--color-gray: ${colorTextDarkTheme} !important;
+    --darkreader-text--color-white: ${colorTextDarkTheme} !important;
+    --darkreader-text--color-gray-dark: ${colorTextDarkTheme} !important;
+    --darkreader-bg--color-primary: ${colorPrimaryDarkTheme} !important;
+    --darkreader-text--color-primary: ${colorPrimaryDarkTheme} !important;
+    --darkreader-bg--item-focus-border: ${colorPrimaryDarkTheme} !important;
+  }
+  }
   body {
-    background-color: var(--darkreader-neutral-background) !important;
+    background-color: var(--darkreader-bg-neutral-background) !important;
   }
   header[id="Navbar"] {
-    background-color: var(--darkreader-neutral-background) !important;
+    background-color: var(--darkreader-bg-neutral-background) !important;
   }
   section[id="ActionsBar"] {
-    background-color: var(--darkreader-neutral-background) !important;
+    background-color: var(--darkreader-bg-neutral-background) !important;
+  }
+  div[id="app"] {
+    background-color: var(--darkreader-bg-neutral-background) !important;
   }
   select {
     border: 0.1rem solid #FFFFFF !important;
@@ -39,7 +54,7 @@ const DtfInvert = `
     border: unset !important;
   }
   div[data-test="presentationContainer"] {
-    background-color: var(--darkreader-neutral-background) !important;
+    background-color: var(--darkreader-bg-neutral-background) !important;
   }
   select {
     border-top: unset !important;
@@ -47,52 +62,90 @@ const DtfInvert = `
     border-left: unset !important;
   }
   .tl-container {
-    background-color: var(--tl-background) !important;
+    .tl-image {
+      background-color: white !important;
+    }
   }
-  #TD-Tools button, #TD-TopPanel-Undo, #TD-TopPanel-Redo, #TD-Styles {
-    border-color: transparent !important;
+  .tlui-slider__thumb {
+    background-color: var(--darkreader-text--color-text-1) !important;
   }
-  [id="TD-StylesMenu"],
-  [id="TD-Styles-Color-Container"],
-  div[data-test="brandingArea"],
-  #connectionBars > div
+  .tlui-button[data-state="hinted"]::after {
+    background-color: var(--darkreader-selection-background) !important;
+  }
+  div.tlui-toolbar__inner > div.tlui-toolbar__tools.fade-in {
+    background: var(--darkreader-border--color-selected) !important;
+  }
+  div[id="cameraDock"] {
+    background-color: var(--darkreader-bg-neutral-background) !important;
+  }
+  .bnjzQC > div span div:hover {
+    background-color: var(--darkreader-selection-background) !important;
+  }
+  .tl-note__scrim,.tl-arrow-label[data-isediting="true"] > .tl-arrow-label__inner {
+    background-color: unset !important;
+  }
+  textarea {
+    caret-color: black !important;
+  }
+  #connectionBars > div {
+    background-color: var(--darkreader-neutral-text) !important;
+  }
+  div[id^="layout"] {
+    background-color: var(--darkreader-bg-neutral-background) !important;
+  }
+  div[id^="scroll-box"],
+  div[id^="chat-list"],
+  div[id^="breakoutBox"] {
+    background-image: 
+      linear-gradient(rgb(45 47 56 / 0%) 30%, rgba(34, 36, 37, 0)),
+      linear-gradient(rgba(34, 36, 37, 0), rgb(45 47 56 / 0%) 70%),
+      radial-gradient(farthest-side at 50% 0px, rgba(13, 13, 13, 0.2), rgba(13, 13, 13, 0)),
+      radial-gradient(farthest-side at 50% 100%, rgba(13, 13, 13, 0.2), rgba(13, 13, 13, 0));
+  }
+  button[data-test="increaseFontSize"],
+  button[data-test="decreaseFontSize"] {
+    & > span > i {
+      color: var(--darkreader-text--btn-default-color) !important;
+    }
+  }
+`;
+
+const DtfBrandingInvert = `
+  ${DtfInvert},
+  div[data-test="brandingArea"]
 `;
 
 const DtfCss = `
   [id="colorPicker"],
   path,
-  svg
+  svg,
+  g,
+  line,
+  textarea,
+  rect,
+  circle,
+  .tlui-buttons__grid > button,
+  .tlui-popover > button,
+  .tl-html-container > div.tl-text-shape__wrapper.tl-text-shadow,
+  .tl-text,
+  .tl-text-input,
+  .tl-text-content,
+  .tl-text-label__inner,
+  .tl-note__container,
+  .tl-text.tl-text-content,
+  .tl-arrow-label,
+  .tl-arrow-label__inner
 `;
 
 const DtfImages = `
   svg
 `;
 
-const TextMeasure = styled.pre`
-  white-space: pre;
-  width: auto;
-  border: 1px solid red;
-  padding: 4px;
-  margin: 0px;
-  letter-spacing: -0.03em;
-  opacity: 0;
-  position: absolute;
-  top: -500px;
-  left: 0px;
-  z-index: 9999;
-  pointer-events: none;
-  user-select: none;
-  alignment-baseline: mathematical;
-  dominant-baseline: mathematical;
-  font-family: "Source Code Pro";
-`;
-
 export default {
   CaptionsWrapper,
-  ActionsBar,
   Layout,
   DtfInvert,
+  DtfBrandingInvert,
   DtfCss,
   DtfImages,
-  TextMeasure,
 };

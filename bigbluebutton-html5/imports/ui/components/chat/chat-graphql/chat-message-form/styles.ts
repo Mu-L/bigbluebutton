@@ -1,15 +1,15 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import styled from 'styled-components';
 import {
-  colorBlueLight,
   colorText,
   colorGrayLighter,
-  colorPrimary,
+  colorGrayLight,
   colorDanger,
   colorGrayDark,
+  colorBorder,
 } from '/imports/ui/stylesheets/styled-components/palette';
 import {
   smPaddingX,
+  xsPadding,
   smPaddingY,
   borderRadius,
   borderSize,
@@ -17,9 +17,13 @@ import {
 import { fontSizeBase } from '/imports/ui/stylesheets/styled-components/typography';
 import TextareaAutosize from 'react-autosize-textarea';
 import EmojiPickerComponent from '/imports/ui/components/emoji-picker/component';
-import Button from '/imports/ui/components/common/button/component';
+import Button from '@mui/material/Button';
 
-const Form = styled.form`
+interface FormProps {
+  isRTL: boolean;
+}
+
+const Form = styled.form<FormProps>`
   flex-grow: 0;
   flex-shrink: 0;
   align-self: flex-end;
@@ -31,25 +35,57 @@ const Form = styled.form`
 const Wrapper = styled.div`
   display: flex;
   flex-direction: row;
+  border-radius: 0.75rem;
 `;
 
 const Input = styled(TextareaAutosize)`
   flex: 1;
   background: #fff;
   background-clip: padding-box;
-  margin: 0;
-  color: ${colorText};
+  margin: ${xsPadding} 0 ${xsPadding} ${xsPadding};
+  color: ${colorGrayLight};
   -webkit-appearance: none;
-  padding: calc(${smPaddingY} * 2.5) calc(${smPaddingX} * 1.25);
+  padding: calc(${smPaddingY} * 2.5) 0 calc(${smPaddingX} * 1.25) calc(${smPaddingY} * 2.5);
   resize: none;
-  transition: none;
+  transition: color 0.3s ease;
   border-radius: ${borderRadius};
   font-size: ${fontSizeBase};
   line-height: 1;
   min-height: 2.5rem;
-  max-height: 10rem;
-  border: 1px solid ${colorGrayLighter};
-  box-shadow: 0 0 0 1px ${colorGrayLighter};
+  max-height: 3.5rem;
+  overflow-y: auto;
+  border: ${colorBorder};
+  box-shadow: none;
+  outline: none;
+
+  &::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: ${colorGrayLighter};
+    border-radius: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: ${colorGrayDark};
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  [dir='ltr'] & {
+    border-radius: 0.75rem 0 0 0.75rem;
+  }
+
+  [dir='rtl'] & {
+    border-radius: 0 0.75rem 0.75rem 0;
+  }
+
+  &:focus {
+    color: ${colorText};
+  }
 
   &:disabled,
   &[disabled] {
@@ -57,29 +93,22 @@ const Input = styled(TextareaAutosize)`
     opacity: .75;
     background-color: rgba(167,179,189,0.25);
   }
-
-  &:focus {
-    border-radius: ${borderSize};
-    box-shadow: 0 0 0 ${borderSize} ${colorBlueLight}, inset 0 0 0 1px ${colorPrimary};
-  }
-
-  &:hover,
-  &:active,
-  &:focus {
-    outline: transparent;
-    outline-style: dotted;
-    outline-width: ${borderSize};
-  }
 `;
 
 // @ts-ignore - as button comes from JS, we can't provide its props
 const SendButton = styled(Button)`
-  margin:0 0 0 ${smPaddingX};
   align-self: center;
   font-size: 0.9rem;
+  height: 100%;
+
+  & > span {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    border-radius: 0 0.75rem 0.75rem 0;
+  }
 
   [dir="rtl"]  & {
-    margin: 0 ${smPaddingX} 0 0;
     -webkit-transform: scale(-1, 1);
     -moz-transform: scale(-1, 1);
     -ms-transform: scale(-1, 1);
@@ -93,8 +122,6 @@ const EmojiButtonWrapper = styled.div``;
 // @ts-ignore - as button comes from JS, we can't provide its props
 const EmojiButton = styled(Button)`
   margin:0 0 0 ${smPaddingX};
-  align-self: center;
-  font-size: 0.5rem;
 
   [dir="rtl"]  & {
     margin: 0 ${smPaddingX} 0 0;
@@ -107,6 +134,15 @@ const EmojiButton = styled(Button)`
 `;
 
 const EmojiPickerWrapper = styled.div`
+position: absolute;
+bottom: calc(100% + 0.5rem);
+left: 0;
+right: 0;
+border: 1px solid ${colorBorder};
+border-radius: ${borderRadius};
+box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+z-index: 1000;
+
   .emoji-mart {
     max-width: 100% !important;
   }
@@ -124,7 +160,7 @@ const EmojiPickerWrapper = styled.div`
   }
 `;
 
-const Error = styled.div`
+const ChatMessageError = styled.div`
   color: ${colorDanger};
   font-size: calc(${fontSizeBase} * .75);
   color: ${colorGrayDark};
@@ -136,7 +172,23 @@ const Error = styled.div`
   margin-left: 0.05rem;
 `;
 
-const EmojiPicker = styled(EmojiPickerComponent)``;
+const EmojiPicker = styled(EmojiPickerComponent)`
+  position: relative;
+`;
+
+const InputWrapper = styled.div`
+  display: flex;
+  flex-direction: row;
+  flex-grow: 1;
+  min-width: 0;
+  z-index: 0;
+  border-radius: 0.75rem;
+  border: 1px solid ${colorBorder};
+
+  &:focus-within {
+    box-shadow: 0 0 0 ${xsPadding} ${colorBorder};
+  }
+`;
 
 export default {
   Form,
@@ -147,5 +199,6 @@ export default {
   EmojiButtonWrapper,
   EmojiPicker,
   EmojiPickerWrapper,
-  Error,
+  ChatMessageError,
+  InputWrapper,
 };

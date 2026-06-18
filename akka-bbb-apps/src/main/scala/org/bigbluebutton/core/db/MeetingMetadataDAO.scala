@@ -1,11 +1,8 @@
 package org.bigbluebutton.core.db
 
-import org.bigbluebutton.common2.domain.{ MetadataProp }
+import org.bigbluebutton.common2.domain.MetadataProp
 import slick.jdbc.PostgresProfile.api._
-import slick.lifted.{ ProvenShape }
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.{ Failure, Success }
+import slick.lifted.ProvenShape
 
 case class MeetingMetadataDbModel(
     meetingId: String,
@@ -21,13 +18,13 @@ class MeetingMetadataDbTableDef(tag: Tag) extends Table[MeetingMetadataDbModel](
 
   //  def fk_meetingId: ForeignKeyQuery[MeetingDbTableDef, MeetingDbModel] = foreignKey("fk_meetingId", meetingId, TableQuery[MeetingDbTableDef])(_.meetingId)
 
-  override def * : ProvenShape[MeetingMetadataDbModel] = (meetingId, name, value) <> (MeetingMetadataDbModel.tupled, MeetingMetadataDbModel.unapply)
+  override def * : ProvenShape[MeetingMetadataDbModel] = (meetingId, name, value).<>(MeetingMetadataDbModel.tupled, MeetingMetadataDbModel.unapply)
 }
 
 object MeetingMetadataDAO {
   def insert(meetingId: String, metadataProp: MetadataProp) = {
 
-    DatabaseConnection.db.run(DBIO.sequence(
+    DatabaseConnection.enqueue(DBIO.sequence(
       for {
         metadata <- metadataProp.metadata
       } yield {
@@ -40,9 +37,5 @@ object MeetingMetadataDAO {
         )
       }
     ).transactionally)
-      .onComplete {
-        case Success(rowsAffected) => DatabaseConnection.logger.debug(s"$rowsAffected row(s) inserted on MeetingMetadata table!")
-        case Failure(e)            => DatabaseConnection.logger.debug(s"Error inserting MeetingMetadata: $e")
-      }
   }
 }

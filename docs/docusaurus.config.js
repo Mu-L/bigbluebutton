@@ -4,16 +4,19 @@
 const lightCodeTheme = require('prism-react-renderer').themes.github;
 const darkCodeTheme = require('prism-react-renderer').themes.dracula;
 
+const isDev = typeof process.env.NODE_ENV != 'undefined' && process.env.NODE_ENV === 'development';
+
 /** @type {import('@docusaurus/types').Config} */
 const config = {
     title: 'BigBlueButton',
     tagline: 'Official Documentation',
     url: 'https://docs.bigbluebutton.org/',
-    baseUrl: '/',
-    onBrokenLinks: 'throw',
-    onBrokenMarkdownLinks: 'warn',
+    baseUrl: isDev ? '/docs' : '/',
     favicon: 'img/favicon.ico',
     trailingSlash: true,
+    markdown: {
+        mermaid: true,
+    },    
 
     // GitHub pages deployment config.
     // If you aren't using GitHub pages, you don't need these.
@@ -28,6 +31,23 @@ const config = {
         locales: ['en'],
     },
 
+    headTags: [
+        // Cookie consent control required for GDPR. Token is not required to be renewed. Update hN querystring to match domain.
+        {
+            tagName: 'script',
+            attributes: {
+                src: 'https://cdn.baycloud.com/cl.js?cid=9be233bfe3004dc49e742fd0fa98642c&hN=docs.bigbluebutton.org',
+            },
+        },
+        // baycloud's cl.js monkey-patches window.Worker and assumes a string URL (calls .includes/.replace).
+        // docusaurus-search-local 0.52+ passes a URL object — coerce it back to a string here so search works.
+        {
+            tagName: 'script',
+            attributes: {},
+            innerHTML: "(function(){if(typeof window==='undefined'||typeof window.Worker!=='function')return;var P=window.Worker;window.Worker=new Proxy(P,{construct:function(t,a){var u=a[0];if(u&&typeof u!=='string'&&typeof u.toString==='function')a=[u.toString()].concat(a.slice(1));return Reflect.construct(t,a)}})})();",
+        },
+    ],
+    
     presets: [
         [
             'classic',
@@ -36,21 +56,25 @@ const config = {
                 docs: {
                     routeBasePath: "/",
                     sidebarPath: require.resolve('./sidebars.js'),
-                    lastVersion: '2.7',
+                    lastVersion: '3.0',
                     includeCurrentVersion: false,
                     versions: {
-                        '2.5-legacy': {
+                        '2.5': {
                             banner: 'none'
                         },
                         '2.6': {
                             banner: 'none'
                         },
-                        '3.0': {
-                            banner: 'none'
-                        },
                         '2.7': {
                             banner: 'none'
                         },
+                        '3.0': {
+                            banner: 'none'
+                        },
+                        '4.0': {
+                            label: '4.0 (in development)',
+                            banner: 'unreleased'
+                        }
                     }
                 },
                 theme: {
@@ -61,7 +85,7 @@ const config = {
     ],
 
     plugins: [
-        require.resolve("@cmfcmf/docusaurus-search-local"),
+        '@docusaurus/theme-mermaid',
         [
             "@docusaurus/plugin-client-redirects",
             {
@@ -76,8 +100,8 @@ const config = {
                         from: "/2.6/new.html"
                     },
                     {
-                        to: "/new-features/",
-                        from: "/2.7/new-features/"
+                        to: "/2.7/new-features/",
+                        from: "/2.7/new/"
                     },
                     {
                         to: "/development/api/",
@@ -86,6 +110,10 @@ const config = {
                     {
                         to: "/greenlight/v3/migration/",
                         from: "/greenlight_v3/gl3-migration.html"
+                    },
+                    {
+                        to: "/", // Page release-notes was removed in 3.0
+                        from: "/release-notes/"
                     }
                 ],
                 // We interpret the path argument as the path "to"
@@ -94,9 +122,9 @@ const config = {
                     // TODO: remove default route to /
                     const redirect_list = [];
 
-                    // Create redirect paths for all routes except 2.5 or 2.6 ones
-                    if ( !(path.startsWith("/2.5") || path.startsWith("/2.6"))){
-                        redirect_list.push("/2.7" + path);
+                    // Create redirect paths for all routes except 2.5 or 2.6, 2.7 ones
+                    if ( !(path.startsWith("/2.5") || path.startsWith("/2.6") || path.startsWith("/2.7"))){
+                        redirect_list.push("/3.0" + path);
                     }
 
                     if ( path.includes("/testing/release-testing") ){
@@ -139,18 +167,19 @@ const config = {
                 },
                 items: [
                     {to: 'https://bigbluebutton.org/teachers/tutorials/', label: 'Teaching', position: 'left'},
-                    {to: '/development/guide', label: 'Development', position: 'left'},
-                    {to: '/administration/install', label: 'Administration', position: 'left'},
-                    {to: '/greenlight/v3/install', label: 'Greenlight', position: 'left'},
-                    {to: '/new-features', label: 'New Features', position: 'left'},
-                    {to: '/support/getting-help', label: 'Support', position: 'left'},
+                    {type: 'doc', docId: 'development/guide',      label: 'Development',    position: 'left'},
+                    {type: 'doc', docId: 'administration/install', label: 'Administration', position: 'left'},
+                    {type: 'doc', docId: 'greenlight/v3/install',  label: 'Greenlight',     position: 'left'},
+                    {type: 'doc', docId: 'new-features',           label: 'New Features',   position: 'left'},
+                    {type: 'doc', docId: 'plugins',                label: 'Plugins',        position: 'left'},
+                    {type: 'doc', docId: 'support/getting-help',   label: 'Support',        position: 'left'},
                     {
                         type: 'docsVersionDropdown',
                         position: 'right',
                         dropdownActiveClassDisabled: true,
                     },
                     {
-                        href: 'https://github.com/bigbluebutton/bigbluebutton/tree/v2.7.x-release/docs',
+                        href: 'https://github.com/bigbluebutton/bigbluebutton/tree/v3.0.x-release/docs',
                         label: 'GitHub',
                         position: 'right',
                     },
@@ -162,10 +191,6 @@ const config = {
                     {
                         title: 'BigBlueButton',
                         items: [
-                            {
-                                label: 'Release notes',
-                                href: '/release-notes',
-                            },
                             {
                                 label: 'Github',
                                 href: 'https://github.com/bigbluebutton',
@@ -248,6 +273,23 @@ const config = {
                 darkTheme: darkCodeTheme,
             },
         }),
+        themes: [
+            // ... Your other themes.
+            [
+              require.resolve("@easyops-cn/docusaurus-search-local"),
+              /** @type {import("@easyops-cn/docusaurus-search-local").PluginOptions} */
+              ({
+                // ... Your options.
+                // `hashed` is recommended as long-term-cache of index file is possible.
+                hashed: true,
+                docsRouteBasePath: "/",
+                // For Docs using Chinese, The `language` is recommended to set to:
+                // ```
+                // language: ["en", "zh"],
+                // ```
+              }),
+            ],
+          ],
 };
 
 module.exports = config;

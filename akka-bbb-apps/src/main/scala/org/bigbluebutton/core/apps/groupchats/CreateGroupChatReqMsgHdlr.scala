@@ -1,16 +1,13 @@
 package org.bigbluebutton.core.apps.groupchats
 
-import org.bigbluebutton.common2.msgs._
-import org.bigbluebutton.core.bus.MessageBus
-import org.bigbluebutton.core.domain.MeetingState2x
-import org.bigbluebutton.core.models.GroupChat
-import org.bigbluebutton.core.running.LiveMeeting
-import org.bigbluebutton.core.apps.PermissionCheck
 import org.bigbluebutton.SystemConfiguration
-import org.bigbluebutton.core.db.ChatDAO
-import org.bigbluebutton.core.db.ChatUserDAO
-import org.bigbluebutton.core.models.Users2x
-import org.bigbluebutton.core.models.Roles
+import org.bigbluebutton.common2.msgs._
+import org.bigbluebutton.core.apps.PermissionCheck
+import org.bigbluebutton.core.bus.MessageBus
+import org.bigbluebutton.core.db.{ ChatDAO, ChatUserDAO }
+import org.bigbluebutton.core.domain.MeetingState2x
+import org.bigbluebutton.core.models.{ GroupChat, Roles, Users2x }
+import org.bigbluebutton.core.running.LiveMeeting
 import org.bigbluebutton.core2.MeetingStatus2x
 
 trait CreateGroupChatReqMsgHdlr extends SystemConfiguration {
@@ -20,7 +17,12 @@ trait CreateGroupChatReqMsgHdlr extends SystemConfiguration {
              liveMeeting: LiveMeeting, bus: MessageBus): MeetingState2x = {
     log.debug("RECEIVED CREATE CHAT REQ MESSAGE")
 
+    var privateChatDisabled: Boolean = false
     var chatLocked: Boolean = false
+
+    if (msg.body.access == GroupChatAccess.PRIVATE) {
+      privateChatDisabled = liveMeeting.props.meetingProp.disabledFeatures.contains("privateChat")
+    }
 
     for {
       user <- Users2x.findWithIntId(liveMeeting.users2x, msg.header.userId)
@@ -45,7 +47,12 @@ trait CreateGroupChatReqMsgHdlr extends SystemConfiguration {
     // Check if this message was sent while the lock settings was being changed.
     val isDelayedMessage = System.currentTimeMillis() - MeetingStatus2x.getPermissionsChangedOn(liveMeeting.status) < 5000
 
-    if (applyPermissionCheck && chatLocked && !isDelayedMessage) {
+    if (privateChatDisabled ||
+      (
+        applyPermissionCheck &&
+        chatLocked &&
+        !isDelayedMessage
+      )) {
       val meetingId = liveMeeting.props.meetingProp.intId
       val reason = "No permission to create a new group chat."
       PermissionCheck.ejectUserForFailedPermission(meetingId, msg.header.userId, reason, bus.outGW, liveMeeting)
@@ -53,13 +60,13 @@ trait CreateGroupChatReqMsgHdlr extends SystemConfiguration {
     } else {
       GroupChatApp.getGroupChatOfUsers(msg.header.userId, msg.body.users, state) match {
         case Some(groupChat) =>
-          ChatUserDAO.updateChatVisible(msg.header.meetingId, groupChat.id, msg.header.userId)
+          ChatUserDAO.updateChatVisible(msg.header.meetingId, groupChat.id, msg.header.userId, visible = true)
           state
         case None =>
           val newState = for {
             createdBy <- GroupChatApp.findGroupChatUser(msg.header.userId, liveMeeting.users2x)
           } yield {
-            val msgs = msg.body.msg.map(m => GroupChatApp.toGroupChatMessage(createdBy, m))
+            val msgs = msg.body.msg.map(m => GroupChatApp.toGroupChatMessage(createdBy, m, emphasizedText = false))
             val users = {
               if (msg.body.access == GroupChatAccess.PRIVATE) {
                 val cu = msg.body.users.toSet + msg.header.userId

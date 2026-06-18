@@ -1,11 +1,10 @@
-import org.bigbluebutton.build._
-
-import NativePackagerHelper._
-import com.typesafe.sbt.SbtNativePackager.autoImport._
+import com.typesafe.sbt.SbtNativePackager.autoImport.*
+import org.bigbluebutton.build.*
 
 enablePlugins(JavaServerAppPackaging)
 enablePlugins(UniversalPlugin)
 enablePlugins(DebianPlugin)
+enablePlugins(PekkoGrpcPlugin)
 
 version := "0.0.4"
 
@@ -44,6 +43,8 @@ testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-h", "target/sc
 Seq(Revolver.settings: _*)
 lazy val bbbAppsAkka = (project in file(".")).settings(name := "bbb-apps-akka", libraryDependencies ++= Dependencies.runtime).settings(compileSettings)
 
+PB.protoSources in Compile += baseDirectory.value / "../bbb-common-grpc/src/main/proto"
+
 // See https://github.com/scala-ide/scalariform
 // Config file is in ./.scalariform.conf
 scalariformAutoformat := true
@@ -56,7 +57,10 @@ scalaVersion := "2.13.9"
 // https://github.com/muuki88/sbt-native-packager-examples/tree/master/akka-server-app
 // http://www.scala-sbt.org/sbt-native-packager/index.html
 //-----------
-mainClass := Some("org.bigbluebutton.Boot")
+
+//commented next line to avoid warn
+//mainClass := Some("org.bigbluebutton.Boot")
+
 
 maintainer in Linux := "Richard Alam <ritzalam@gmail.com>"
 
@@ -75,5 +79,6 @@ daemonUser in Linux := user
 daemonGroup in Linux := group
 
 javaOptions in Universal ++= Seq("-J-Xms130m", "-J-Xmx256m", "-Dconfig.file=/etc/bigbluebutton/bbb-apps-akka.conf", "-Dlogback.configurationFile=conf/logback.xml")
+javaOptions in reStart ++= Seq("-Dconfig.file=/etc/bigbluebutton/bbb-apps-akka.conf", "-Dlogback.configurationFile=conf/logback.xml")
 
 debianPackageDependencies in Debian ++= Seq("java17-runtime-headless", "bash")

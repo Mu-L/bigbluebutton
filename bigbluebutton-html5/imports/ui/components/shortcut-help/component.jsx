@@ -7,7 +7,7 @@ import ModalSimple from '/imports/ui/components/common/modal/simple/component';
 import Styled from './styles';
 import StyledSettings from '../settings/styles';
 import withShortcutHelper from './service';
-import { isChatEnabled } from '/imports/ui/services/features';
+import { useIsChatEnabled } from '/imports/ui/services/features';
 import { uniqueId } from '/imports/utils/string-utils';
 
 const intlMessages = defineMessages({
@@ -46,6 +46,10 @@ const intlMessages = defineMessages({
   toggleuserlist: {
     id: 'app.shortcut-help.toggleUserList',
     description: 'describes the toggle userlist shortcut',
+  },
+  openleavemenu: {
+    id: 'app.shortcut-help.openLeaveMenu',
+    description: 'describes the open leave menu shortcut',
   },
   togglemute: {
     id: 'app.shortcut-help.toggleMute',
@@ -246,7 +250,19 @@ const intlMessages = defineMessages({
   duplicate: {
     id: 'app.shortcut-help.duplicate',
     description: 'describes the duplicate shortcut key',
-  }
+  },
+  pushToTalkDesc: {
+    id: 'app.shortcut-help.pushToTalk',
+    description: 'describes the push-to-talk shortcut',
+  },
+  gesture: {
+    id: 'app.shortcut-help.gesture',
+    description: 'label for gesture tab',
+  },
+  fingerTap: {
+    id: 'app.shortcut-help.fingerTap',
+    description: 'label for tap shotcut',
+  },
 });
 
 
@@ -269,15 +285,17 @@ const renderItemWhiteBoard = (func, key, alt) => {
   );
 }
 
-const ShortcutHelpComponent = (props) => {
-  const { intl, shortcuts,
-    isOpen,
-    onRequestClose,
-    priority,
-  } = props;
+const ShortcutHelpComponent = ({
+  intl = {},
+  shortcuts,
+  isOpen,
+  onRequestClose,
+  priority,
+}) => {
   const { browserName } = browserInfo;
   const { isIos, isMacos } = deviceInfo;
   const [ selectedTab, setSelectedTab] = React.useState(0);
+  const isChatEnabled = useIsChatEnabled();
 
   let accessMod = null;
 
@@ -306,12 +324,18 @@ const ShortcutHelpComponent = (props) => {
   }
 
   const generalShortcutItems = shortcuts.map((shortcut) => {
-    if (!isChatEnabled() && shortcut.descId.indexOf('Chat') !== -1) return null;
+    if (!isChatEnabled && shortcut.descId.indexOf('Chat') !== -1) return null;
     return renderItem(
       `${intl.formatMessage(intlMessages[`${shortcut.descId.toLowerCase()}`])}`,
       `${accessMod} + ${shortcut.accesskey}`
     );
   });
+
+  const ptt = renderItem(
+    `${intl.formatMessage(intlMessages.pushToTalkDesc)}`,
+    `M`
+  );
+  generalShortcutItems.splice(3, 0, ptt);
 
   const shortcutItems = [];
   shortcutItems.push(renderItem(intl.formatMessage(intlMessages.togglePan),
@@ -322,6 +346,12 @@ const ShortcutHelpComponent = (props) => {
    intl.formatMessage(intlMessages.nextSlideKey)));
   shortcutItems.push(renderItem(intl.formatMessage(intlMessages.previousSlideDesc),
    intl.formatMessage(intlMessages.previousSlideKey)));
+
+  const gestureItems = [];
+  gestureItems.push(renderItem(intl.formatMessage(intlMessages.undo),
+   `2-${intl.formatMessage(intlMessages.fingerTap)}`));
+  gestureItems.push(renderItem(intl.formatMessage(intlMessages.redo),
+   `3-${intl.formatMessage(intlMessages.fingerTap)}`));
 
   const whiteboardShortcutItems = [];
   //tools
@@ -392,6 +422,11 @@ const ShortcutHelpComponent = (props) => {
             <StyledSettings.SettingsIcon iconName="whiteboard" />
             <span id="whiteboardTab">{intl.formatMessage(intlMessages.whiteboard)}</span>
           </StyledSettings.SettingsTabSelector>
+
+          <StyledSettings.SettingsTabSelector selectedClassName="is-selected">
+            <StyledSettings.SettingsIcon iconName="whiteboard" />
+            <span id="gestureTab">{intl.formatMessage(intlMessages.gesture)}</span>
+          </StyledSettings.SettingsTabSelector>
         </StyledSettings.SettingsTabList>
 
         <Styled.TabPanel selectedClassName="is-selected">
@@ -439,13 +474,23 @@ const ShortcutHelpComponent = (props) => {
           </Styled.TableWrapper>
         </Styled.TabPanel>
 
+        <Styled.TabPanel selectedClassName="is-selected">
+          <Styled.TableWrapper>
+            <Styled.ShortcutTable>
+              <tbody>
+                <tr>
+                  <th>{intl.formatMessage(intlMessages.functionLabel)}</th>
+                  <th>{intl.formatMessage(intlMessages.comboLabel)}</th>
+                </tr>
+                {gestureItems}
+              </tbody>
+            </Styled.ShortcutTable>
+          </Styled.TableWrapper>
+        </Styled.TabPanel>
+
       </Styled.SettingsTabs>
     </ModalSimple>
   );
-};
-
-ShortcutHelpComponent.defaultProps = {
-  intl: {},
 };
 
 ShortcutHelpComponent.propTypes = {

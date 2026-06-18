@@ -21,8 +21,10 @@ select_permissions:
     permission:
       columns:
         - content
+        - fitToWidth
         - height
         - heightRatio
+        - infiniteWhiteboard
         - isCurrentPage
         - num
         - pageId
@@ -42,3 +44,4 @@ select_permissions:
       filter:
         meetingId:
           _eq: X-Hasura-PresenterInMeeting
+      allow_aggregations: true

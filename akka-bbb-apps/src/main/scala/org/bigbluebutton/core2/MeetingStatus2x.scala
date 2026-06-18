@@ -1,7 +1,8 @@
 package org.bigbluebutton.core2
 
-import java.util.concurrent.TimeUnit
 import org.bigbluebutton.core.util.TimeUtil
+
+import java.util.concurrent.TimeUnit
 
 case class Permissions(
     disableCam:             Boolean = false,
@@ -37,6 +38,7 @@ object MeetingStatus2x {
   def getMeetingExtensionProp(status: MeetingStatus2x): MeetingExtensionProp = status.extension
   def muteMeeting(status: MeetingStatus2x) = status.meetingMuted = true
   def unmuteMeeting(status: MeetingStatus2x) = status.meetingMuted = false
+  def setMeetingMuted(status: MeetingStatus2x, value: Boolean) = status.meetingMuted = value
   def isMeetingMuted(status: MeetingStatus2x): Boolean = status.meetingMuted
   def recordingStarted(status: MeetingStatus2x) = status.recording = true
   def recordingStopped(status: MeetingStatus2x) = status.recording = false

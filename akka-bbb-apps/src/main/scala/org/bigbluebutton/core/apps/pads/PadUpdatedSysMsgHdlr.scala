@@ -2,7 +2,7 @@ package org.bigbluebutton.core.apps.pads
 
 import org.bigbluebutton.common2.msgs._
 import org.bigbluebutton.core.bus.MessageBus
-import org.bigbluebutton.core.db.{ SharedNotesRevDAO }
+import org.bigbluebutton.core.db.SharedNotesRevDAO
 import org.bigbluebutton.core.models.Pads
 import org.bigbluebutton.core.running.LiveMeeting
 
@@ -24,6 +24,7 @@ trait PadUpdatedSysMsgHdlr {
 
     Pads.getGroupById(liveMeeting.pads, msg.body.groupId) match {
       case Some(group) => {
+        Pads.setRev(liveMeeting.pads, group.externalId, msg.body.rev)
         SharedNotesRevDAO.insert(liveMeeting.props.meetingProp.intId, group.externalId, msg.body.rev, msg.body.userId, msg.body.changeset)
         broadcastEvent(group.externalId, msg.body.padId, msg.body.userId, msg.body.rev, msg.body.changeset)
       }

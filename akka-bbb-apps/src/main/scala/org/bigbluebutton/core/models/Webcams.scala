@@ -2,7 +2,7 @@ package org.bigbluebutton.core.models
 
 import org.bigbluebutton.core.db.UserCameraDAO
 
-import collection.immutable.HashMap
+import scala.collection.immutable.HashMap
 
 object Webcams {
   def findWithStreamId(webcams: Webcams, streamId: String): Option[WebcamStream] = {
@@ -15,10 +15,10 @@ object Webcams {
 
   def findAll(webcams: Webcams): Vector[WebcamStream] = webcams.toVector
 
-  def addWebcamStream(webcams: Webcams, webcam: WebcamStream): Option[WebcamStream] = {
+  def addWebcamStream(meetingId: String, webcams: Webcams, webcam: WebcamStream): Option[WebcamStream] = {
     findWithStreamId(webcams, webcam.streamId) match {
       case None => {
-        UserCameraDAO.insert(webcam)
+        UserCameraDAO.insert(meetingId, webcam)
         Some(webcams.save(webcam))
       }
       case _ => None
@@ -98,4 +98,11 @@ class Webcams {
   }
 }
 
-case class WebcamStream(streamId: String, userId: String, subscribers: Set[String])
+case class WebcamStream(
+    streamId:      String,
+    userId:        String,
+    contentType:   String,
+    hasAudio:      Boolean,
+    showAsContent: Boolean,
+    subscribers:   Set[String]
+)

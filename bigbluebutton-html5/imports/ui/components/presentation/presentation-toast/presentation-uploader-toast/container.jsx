@@ -1,26 +1,42 @@
-import React from 'react';
-import { withTracker } from 'meteor/react-meteor-data';
-import { UploadingPresentations } from '/imports/api/presentations';
+import React, { useState } from 'react';
+import { useMutation } from '@apollo/client';
 import { PresentationUploaderToast } from './component';
-import { useSubscription } from '@apollo/client';
+
 import {
   EXPORTING_PRESENTATIONS_SUBSCRIPTION,
 } from '/imports/ui/components/whiteboard/queries';
+import useDeduplicatedSubscription from '/imports/ui/core/hooks/useDeduplicatedSubscription';
+import SET_PRESENTATION_RENDERED_IN_TOAST from './mutation';
 
 const PresentationUploaderToastContainer = (props) => {
-  const { data: presentationData } = useSubscription(EXPORTING_PRESENTATIONS_SUBSCRIPTION);
+  const {
+    data: presentationData,
+    loading: presentationLoading,
+  } = useDeduplicatedSubscription(
+    EXPORTING_PRESENTATIONS_SUBSCRIPTION,
+  );
+
+  // Force show toast in first render, since default.pdf is completely uploaded at this point
+  const [forceShowToast, setForceShowToast] = useState(true);
+  const [setPresentationUploadCompletionNotified] = useMutation(SET_PRESENTATION_RENDERED_IN_TOAST);
   const presentations = presentationData?.pres_presentation || [];
 
-  const convertingPresentations = presentations.filter(
-    (p) => !p.uploadCompleted || !!p.uploadErrorMsgKey,
+  const presentationsToBeShowed = presentations.filter(
+    (p) => (!p.uploadCompletionNotified),
   );
+
+  if (presentationLoading) return null;
+  if (!presentations.length) return null;
 
   return (
     <PresentationUploaderToast
       {
       ...{
-        presentations,
-        convertingPresentations,
+        presentations: presentations.filter((p) => p),
+        presentationsToBeShowed,
+        setPresentationUploadCompletionNotified,
+        forceShowToast,
+        setForceShowToast,
         ...props,
       }
       }
@@ -28,10 +44,4 @@ const PresentationUploaderToastContainer = (props) => {
   );
 };
 
-export default withTracker(() => {
-  const uploadingPresentations = UploadingPresentations.find({ $or: [{ 'upload.error': true }, { 'upload.done': false }] }).fetch();
-
-  return {
-    uploadingPresentations,
-  };
-})(PresentationUploaderToastContainer);
+export default PresentationUploaderToastContainer;

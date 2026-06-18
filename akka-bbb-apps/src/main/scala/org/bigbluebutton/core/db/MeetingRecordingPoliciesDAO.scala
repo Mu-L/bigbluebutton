@@ -1,11 +1,8 @@
 package org.bigbluebutton.core.db
 
-import org.bigbluebutton.common2.domain.{ RecordProp }
+import org.bigbluebutton.common2.domain.RecordProp
 import slick.jdbc.PostgresProfile.api._
-import slick.lifted.{ ProvenShape }
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.{ Failure, Success }
+import slick.lifted.ProvenShape
 
 case class MeetingRecordingPoliciesDbModel(
     meetingId:               String,
@@ -23,12 +20,12 @@ class MeetingRecordingPoliciesDbTableDef(tag: Tag) extends Table[MeetingRecordin
   val keepEvents = column[Boolean]("keepEvents")
   //  def fk_meetingId: ForeignKeyQuery[MeetingDbTableDef, MeetingDbModel] = foreignKey("fk_meetingId", meetingId, TableQuery[MeetingDbTableDef])(_.meetingId)
 
-  override def * : ProvenShape[MeetingRecordingPoliciesDbModel] = (meetingId, record, autoStartRecording, allowStartStopRecording, keepEvents) <> (MeetingRecordingPoliciesDbModel.tupled, MeetingRecordingPoliciesDbModel.unapply)
+  override def * : ProvenShape[MeetingRecordingPoliciesDbModel] = (meetingId, record, autoStartRecording, allowStartStopRecording, keepEvents).<>(MeetingRecordingPoliciesDbModel.tupled, MeetingRecordingPoliciesDbModel.unapply)
 }
 
 object MeetingRecordingPoliciesDAO {
   def insert(meetingId: String, recordProp: RecordProp) = {
-    DatabaseConnection.db.run(
+    DatabaseConnection.enqueue(
       TableQuery[MeetingRecordingPoliciesDbTableDef].forceInsert(
         MeetingRecordingPoliciesDbModel(
           meetingId = meetingId,
@@ -38,12 +35,7 @@ object MeetingRecordingPoliciesDAO {
           keepEvents = recordProp.keepEvents
         )
       )
-    ).onComplete {
-        case Success(rowsAffected) => {
-          DatabaseConnection.logger.debug(s"$rowsAffected row(s) inserted in MeetingRecordingPolicies table!")
-        }
-        case Failure(e) => DatabaseConnection.logger.error(s"Error inserting MeetingRecordingPolicies: $e")
-      }
+    )
   }
 
 }

@@ -10,6 +10,10 @@ object PreuploadedPresentationsSysPubMsg { val NAME = "PreuploadedPresentationsS
 case class PreuploadedPresentationsSysPubMsg(header: BbbClientMsgHeader, body: PreuploadedPresentationsSysPubMsgBody) extends StandardMsg
 case class PreuploadedPresentationsSysPubMsgBody(presentations: Vector[PresentationVO])
 
+object SetPresentationUploadCompletionNotifiedPubMsg { val NAME = "SetPresentationUploadCompletionNotifiedPubMsg" }
+case class SetPresentationUploadCompletionNotifiedPubMsg(header: BbbClientMsgHeader, body: SetPresentationUploadCompletionNotifiedPubMsgBody) extends StandardMsg
+case class SetPresentationUploadCompletionNotifiedPubMsgBody(presentationId: String)
+
 object MakePresentationDownloadReqMsg { val NAME = "MakePresentationDownloadReqMsg" }
 case class MakePresentationDownloadReqMsg(header: BbbClientMsgHeader, body: MakePresentationDownloadReqMsgBody) extends StandardMsg
 case class MakePresentationDownloadReqMsgBody(presId: String, allPages: Boolean, pages: List[Int], fileStateType: String)
@@ -17,7 +21,7 @@ case class MakePresentationDownloadReqMsgBody(presId: String, allPages: Boolean,
 object NewPresFileAvailableMsg { val NAME = "NewPresFileAvailableMsg" }
 case class NewPresFileAvailableMsg(header: BbbClientMsgHeader, body: NewPresFileAvailableMsgBody) extends StandardMsg
 case class NewPresFileAvailableMsgBody(annotatedFileURI: String, originalFileURI: String, convertedFileURI: String,
-                                       presId: String, fileStateType: String)
+                                       presId: String, fileStateType: String, fileName: String)
 
 object PresAnnStatusMsg { val NAME = "PresAnnStatusMsg" }
 case class PresAnnStatusMsg(header: BbbClientMsgHeader, body: PresAnnStatusMsgBody) extends StandardMsg

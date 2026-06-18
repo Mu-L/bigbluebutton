@@ -7,6 +7,7 @@ import Button from '/imports/ui/components/common/button/component';
 import {
   HUNDRED_PERCENT,
   MAX_PERCENT,
+  MIN_PERCENT,
   STEP,
 } from '/imports/utils/slideCalcUtils';
 import {
@@ -89,6 +90,18 @@ const intlMessages = defineMessages({
     id: 'app.whiteboard.toolbar.multiUserOff',
     description: 'Whiteboard toolbar turn multi-user off menu',
   },
+  multiUserLimitHasBeenReached: {
+    id: 'app.whiteboard.toolbar.multiUserLimitHasBeenReached',
+    description: 'Whiteboard toolbar toggle multi-user disabled',
+  },
+  infiniteWhiteboardOn: {
+    id: 'app.whiteboard.toolbar.infiniteWhiteboardOn',
+    description: 'Whiteboard toolbar turn infinite wb on',
+  },
+  infiniteWhiteboardOff: {
+    id: 'app.whiteboard.toolbar.infiniteWhiteboardOff',
+    description: 'Whiteboard toolbar turn infinite wb off',
+  },
   pan: {
     id: 'app.whiteboard.toolbar.tools.hand',
     description: 'presentation toolbar pan label',
@@ -99,12 +112,6 @@ class PresentationToolbar extends PureComponent {
   constructor(props) {
     super(props);
 
-    this.state = {
-      wasFTWActive: false,
-    };
-
-    this.setWasActive = this.setWasActive.bind(this);
-    this.handleFTWSlideChange = this.handleFTWSlideChange.bind(this);
     this.handleSkipToSlideChange = this.handleSkipToSlideChange.bind(this);
     this.change = this.change.bind(this);
     this.renderAriaDescs = this.renderAriaDescs.bind(this);
@@ -119,43 +126,20 @@ class PresentationToolbar extends PureComponent {
     document.addEventListener('keydown', this.switchSlide);
   }
 
-  componentDidUpdate(prevProps) {
-    const { zoom, setIsPanning, fitToWidth, fitToWidthHandler, currentSlideNum } = this.props;
-    const { wasFTWActive } = this.state;
-
-    if (zoom <= HUNDRED_PERCENT && zoom !== prevProps.zoom && !fitToWidth) setIsPanning();
-
-    if ((prevProps?.currentSlideNum !== currentSlideNum) && (!fitToWidth && wasFTWActive)) {
-      setTimeout(() => {
-        fitToWidthHandler();
-        this.setWasActive(false);
-      }, 150)
-    }
-  }
-
   componentWillUnmount() {
     document.removeEventListener('keydown', this.switchSlide);
   }
 
-  setWasActive(wasFTWActive) {
-    this.setState({ wasFTWActive });
-  }
-
-  handleFTWSlideChange() {
-    const { fitToWidth, fitToWidthHandler } = this.props;
-    if (fitToWidth) {
-      fitToWidthHandler();
-      this.setWasActive(fitToWidth);
-    }
-  }
-
   handleSkipToSlideChange(event) {
-    const { skipToSlide, presentationId } = this.props;
+    const { skipToSlide, currentSlide, setPresentationPageInfiniteWhiteboard } = this.props;
     const requestedSlideNum = Number.parseInt(event.target.value, 10);
 
-    this.handleFTWSlideChange();
+    const isInfiniteWhiteboard = currentSlide?.infiniteWhiteboard;
+
+    if (isInfiniteWhiteboard) setPresentationPageInfiniteWhiteboard(false);
+
     if (event) event.currentTarget.blur();
-    skipToSlide(requestedSlideNum, presentationId);
+    skipToSlide(requestedSlideNum);
   }
 
   handleSwitchWhiteboardMode() {
@@ -195,28 +179,27 @@ class PresentationToolbar extends PureComponent {
 
   nextSlideHandler(event) {
     const {
-      nextSlide,
-      currentSlideNum,
-      numberOfSlides,
-      endCurrentPoll,
-      presentationId,
+      nextSlide, currentSlide, setPresentationPageInfiniteWhiteboard,
     } = this.props;
+    const isInfiniteWhiteboard = currentSlide?.infiniteWhiteboard;
 
-    this.handleFTWSlideChange();
+    if (isInfiniteWhiteboard) setPresentationPageInfiniteWhiteboard(false);
+
     if (event) event.currentTarget.blur();
-    endCurrentPoll();
-    nextSlide(currentSlideNum, numberOfSlides, presentationId);
+    nextSlide();
   }
 
   previousSlideHandler(event) {
     const {
-      previousSlide, currentSlideNum, endCurrentPoll, presentationId
+      previousSlide, currentSlide, setPresentationPageInfiniteWhiteboard,
     } = this.props;
 
-    this.handleFTWSlideChange();
+    const isInfiniteWhiteboard = currentSlide?.infiniteWhiteboard;
+
+    if (isInfiniteWhiteboard) setPresentationPageInfiniteWhiteboard(false);
+
     if (event) event.currentTarget.blur();
-    endCurrentPoll();
-    previousSlide(currentSlideNum, presentationId);
+    previousSlide();
   }
 
   switchSlide(event) {
@@ -264,7 +247,7 @@ class PresentationToolbar extends PureComponent {
           componentToReturn = (
             <Button
               key={ppbId}
-              style={{ marginLeft: '2px' }}
+              style={{ marginLeft: '2px', ...ppb.style }}
               label={ppb.label}
               onClick={ppb.onClick}
               tooltipLabel={ppb.tooltip}
@@ -349,8 +332,18 @@ class PresentationToolbar extends PureComponent {
       startPoll,
       currentSlide,
       slidePosition,
+      meetingIsBreakout,
       multiUserSize,
       multiUser,
+      setPresentationPageInfiniteWhiteboard,
+      allowInfiniteWhiteboard,
+      allowInfiniteWhiteboardInBreakouts,
+      infiniteWhiteboardIcon,
+      resetSlide,
+      zoomChanger,
+      tldrawAPI,
+      maxNumberOfActiveUsers,
+      numberOfJoinedUsers,
     } = this.props;
 
     const { isMobile } = deviceInfo;
@@ -367,6 +360,25 @@ class PresentationToolbar extends PureComponent {
       ? intl.formatMessage(intlMessages.nextSlideLabel)
       : `${intl.formatMessage(intlMessages.nextSlideLabel)} (${currentSlideNum >= 1 ? currentSlideNum + 1 : ''
       })`;
+
+    const isInfiniteWhiteboard = currentSlide?.infiniteWhiteboard;
+
+    const showIWB = (allowInfiniteWhiteboard && !meetingIsBreakout)
+      || (meetingIsBreakout && allowInfiniteWhiteboardInBreakouts);
+
+    const multiUserLimitExceeded = numberOfJoinedUsers > maxNumberOfActiveUsers;
+    const disableStartingMultiUser = !multiUser && multiUserLimitExceeded;
+    let multiUserLabel;
+    if (disableStartingMultiUser) {
+      multiUserLabel = intl.formatMessage(
+        intlMessages.multiUserLimitHasBeenReached,
+        { 0: maxNumberOfActiveUsers },
+      );
+    } else if (multiUser) {
+      multiUserLabel = intl.formatMessage(intlMessages.toolbarMultiUserOff);
+    } else {
+      multiUserLabel = intl.formatMessage(intlMessages.toolbarMultiUserOn);
+    }
 
     return (
       <Styled.PresentationToolbarWrapper
@@ -441,25 +453,48 @@ class PresentationToolbar extends PureComponent {
           />
         </Styled.PresentationSlideControls>
         <Styled.PresentationZoomControls>
-          <Styled.WBAccessButton
-            data-test={multiUser ? 'turnMultiUsersWhiteboardOff' : 'turnMultiUsersWhiteboardOn'}
+          {(showIWB) && (
+          <Styled.InfiniteWhiteboardButton
+            data-test={isInfiniteWhiteboard ? 'turnInfiniteWhiteboardOff' : 'turnInfiniteWhiteboardOn'}
             role="button"
             aria-label={
-              multiUser
-                ? intl.formatMessage(intlMessages.toolbarMultiUserOff)
-                : intl.formatMessage(intlMessages.toolbarMultiUserOn)
+              isInfiniteWhiteboard
+                ? intl.formatMessage(intlMessages.infiniteWhiteboardOff)
+                : intl.formatMessage(intlMessages.infiniteWhiteboardOn)
             }
             color="light"
             disabled={!isMeteorConnected}
+            customIcon={infiniteWhiteboardIcon(isInfiniteWhiteboard)}
+            size="md"
+            circle
+            onClick={() => {
+              if (isInfiniteWhiteboard) {
+                tldrawAPI.setCamera({ x: 0, y: 0 });
+                resetSlide();
+                zoomChanger(100);
+              }
+              setPresentationPageInfiniteWhiteboard(!isInfiniteWhiteboard);
+            }}
+            label={
+              isInfiniteWhiteboard
+                ? intl.formatMessage(intlMessages.infiniteWhiteboardOff)
+                : intl.formatMessage(intlMessages.infiniteWhiteboardOn)
+            }
+            hideLabel
+          />
+          )}
+
+          <Styled.WBAccessButton
+            data-test={multiUser ? 'turnMultiUsersWhiteboardOff' : 'turnMultiUsersWhiteboardOn'}
+            role="button"
+            aria-label={multiUserLabel}
+            color="light"
+            disabled={disableStartingMultiUser}
             icon={multiUser ? 'multi_whiteboard' : 'whiteboard'}
             size="md"
             circle
             onClick={() => this.handleSwitchWhiteboardMode(!multiUser)}
-            label={
-              multiUser
-                ? intl.formatMessage(intlMessages.toolbarMultiUserOff)
-                : intl.formatMessage(intlMessages.toolbarMultiUserOn)
-            }
+            label={multiUserLabel}
             hideLabel
           />
           {multiUser ? (
@@ -478,9 +513,10 @@ class PresentationToolbar extends PureComponent {
                 zoomValue={zoom}
                 currentSlideNum={currentSlideNum}
                 change={this.change}
-                minBound={HUNDRED_PERCENT}
+                minBound={isInfiniteWhiteboard ? MIN_PERCENT : HUNDRED_PERCENT}
                 maxBound={MAX_PERCENT}
                 step={STEP}
+                isInfiniteWhiteboard={isInfiniteWhiteboard}
                 isMeteorConnected={isMeteorConnected}
               />
             </TooltipContainer>
@@ -550,6 +586,8 @@ PresentationToolbar.propTypes = {
   currentSlide: PropTypes.shape().isRequired,
   slidePosition: PropTypes.shape().isRequired,
   multiUserSize: PropTypes.number.isRequired,
+  maxNumberOfActiveUsers: PropTypes.number.isRequired,
+  numberOfJoinedUsers: PropTypes.number.isRequired,
 };
 
 PresentationToolbar.defaultProps = {

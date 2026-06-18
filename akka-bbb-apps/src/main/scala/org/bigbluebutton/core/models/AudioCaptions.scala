@@ -1,18 +1,16 @@
 package org.bigbluebutton.core.models
 
-import scala.collection.immutable.HashMap
-
 import org.bigbluebutton.SystemConfiguration
+
+import scala.collection.immutable.HashMap
 
 object AudioCaptions extends SystemConfiguration {
   def setFloor(audioCaptions: AudioCaptions, userId: String) = audioCaptions.floor = userId
 
-  def isFloor(audioCaptions: AudioCaptions, userId: String) = audioCaptions.floor == userId
+  def isFloor(audioCaptions: AudioCaptions, userId: String) = true
 
   def parseTranscript(transcript: String): String = {
-    val words = transcript.split("\\s+") // Split on whitespaces
-    val lines = words.grouped(transcriptWords).toArray // Group each X words into lines
-    lines.takeRight(transcriptLines).map(l => l.mkString(" ")).mkString("\n") // Join the last X lines
+    transcript
   }
 
   /*
@@ -42,7 +40,7 @@ object AudioCaptions extends SystemConfiguration {
 
 class AudioCaptions {
   private var transcripts = new HashMap[String, Transcript]()
-  private var floor: String = ""
+  var floor: String = ""
 
   /*
    * @return : (start, end, text)

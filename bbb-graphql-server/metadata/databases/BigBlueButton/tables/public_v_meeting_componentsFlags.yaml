@@ -11,11 +11,16 @@ select_permissions:
     permission:
       columns:
         - hasBreakoutRoom
+        - hasCameraAsContent
+        - hasCaption
+        - hasCurrentPresentation
         - hasExternalVideo
         - hasPoll
         - hasScreenshare
+        - hasScreenshareAsContent
         - hasTimer
-        - hasCaption
+        - isSharedNotedPinned
+        - showRemainingTime
       filter:
         meetingId:
           _eq: X-Hasura-MeetingId

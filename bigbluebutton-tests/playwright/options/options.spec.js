@@ -1,16 +1,14 @@
-const { test } = require('@playwright/test');
+const { test } = require('../fixtures');
 const { fullyParallel } = require('../playwright.config');
 const { Options } = require('./options');
+const { initializePages } = require('../core/helpers');
 
-if (!fullyParallel) test.describe.configure({ mode: 'serial' });
-
-test.describe('Options', () => {
+test.describe('Options', { tag: '@ci' }, () => {
   const options = new Options();
-  let context;
-  test.beforeAll(async ({ browser }) => {
-    context = await browser.newContext();
-    const page = await context.newPage();
-    await options.initModPage(page, true);
+
+  test.describe.configure({ mode: fullyParallel ? 'parallel' : 'serial' });
+  test[fullyParallel ? 'beforeEach' : 'beforeAll'](async ({ browser }) => {
+    await initializePages(options, browser);
   });
 
   test('Open about modal', async () => {
@@ -18,18 +16,18 @@ test.describe('Options', () => {
   });
 
   test('Open Help Button', async () => {
-    await options.openHelp(context);
+    await options.openHelp();
   });
 
-  test('Locales test', async () => {
+  test('Locales', async () => {
     await options.localesTest();
   });
 
-  test('Dark mode @ci @flaky', async () => {
+  test('Dark mode', async () => {
     await options.darkMode();
   });
 
-  test('Font size @ci @flaky', async () => {
+  test('Font size', async () => {
     await options.fontSizeTest();
   });
 });

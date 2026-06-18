@@ -1,10 +1,10 @@
 import React, { PureComponent } from 'react';
 import { defineMessages, injectIntl } from 'react-intl';
 import PropTypes from 'prop-types';
-import BBBMenu from '/imports/ui/components/common/menu/component';
 import { uniqueId } from '/imports/utils/string-utils';
 import Trigger from '/imports/ui/components/common/control-header/right/component';
 import PresentationDownloadDropdownWrapper from './presentation-download-dropdown-wrapper/component';
+import BBBMenu from '/imports/ui/components/common/menu/component';
 
 const intlMessages = defineMessages({
   enableOriginalPresentationDownload: {
@@ -31,6 +31,10 @@ const intlMessages = defineMessages({
     id: 'app.presentationUploader.dropdownExportOptions',
     description: 'Chat Options',
   },
+  optionsUncomplete: {
+    id: 'app.presentationUploader.dropdownExportOptionsUncomplete',
+    description: 'Chat Options',
+  },
 });
 
 const propTypes = {
@@ -44,13 +48,13 @@ const propTypes = {
   allowDownloadConverted: PropTypes.bool.isRequired,
   allowDownloadWithAnnotations: PropTypes.bool.isRequired,
   item: PropTypes.shape({
-    id: PropTypes.string.isRequired,
-    filename: PropTypes.string.isRequired,
+    id: PropTypes.string,
+    filename: PropTypes.string,
     filenameConverted: PropTypes.string,
-    isCurrent: PropTypes.bool.isRequired,
+    isCurrent: PropTypes.bool,
     temporaryPresentationId: PropTypes.string,
-    isDownloadable: PropTypes.bool.isRequired,
-    isRemovable: PropTypes.bool.isRequired,
+    isDownloadable: PropTypes.bool,
+    isRemovable: PropTypes.bool,
     conversion: PropTypes.shape({
       done: PropTypes.bool,
       error: PropTypes.bool,
@@ -61,15 +65,19 @@ const propTypes = {
     upload: PropTypes.shape({
       done: PropTypes.bool,
       error: PropTypes.bool,
-    }).isRequired,
+    }),
     exportation: PropTypes.shape({
       status: PropTypes.string,
     }),
     uploadTimestamp: PropTypes.string,
     downloadableExtension: PropTypes.string,
-  }).isRequired,
+  }),
   closeModal: PropTypes.func.isRequired,
   disabled: PropTypes.bool.isRequired,
+};
+
+const defaultProps = {
+  item: {},
 };
 
 class PresentationDownloadDropdown extends PureComponent {
@@ -103,7 +111,7 @@ class PresentationDownloadDropdown extends PureComponent {
     const downloadableExtension = downloadFileUri?.split('.').slice(-1)[0];
     const originalFileExtension = name?.split('.').slice(-1)[0];
     const changeDownloadOriginalOrConvertedPresentation = (enableDownload, fileStateType) => {
-      handleDownloadableChange(item, fileStateType, enableDownload);
+      handleDownloadableChange(item?.presentationId, fileStateType, enableDownload);
       if (enableDownload) {
         handleDownloadingOfPresentation(fileStateType);
       }
@@ -172,17 +180,23 @@ class PresentationDownloadDropdown extends PureComponent {
     const { intl, disabled } = this.props;
 
     const customStyles = { zIndex: 9999 };
+    let tooltipLabelForDropdown = intl.formatMessage(intlMessages.options);
+    if (disabled) {
+      tooltipLabelForDropdown = intl.formatMessage(intlMessages.optionsUncomplete);
+    }
 
     return (
-      <PresentationDownloadDropdownWrapper disabled={disabled}>
+      <PresentationDownloadDropdownWrapper>
         <BBBMenu
+          disabled={disabled}
           customStyles={customStyles}
           trigger={(
             <Trigger
+              disabled={disabled}
               data-test="presentationOptionsDownload"
               icon="more"
-              label={intl.formatMessage(intlMessages.options)}
-              aria-label={intl.formatMessage(intlMessages.options)}
+              label={tooltipLabelForDropdown}
+              aria-label={tooltipLabelForDropdown}
               onClick={() => null}
             />
           )}
@@ -204,5 +218,6 @@ class PresentationDownloadDropdown extends PureComponent {
 }
 
 PresentationDownloadDropdown.propTypes = propTypes;
+PresentationDownloadDropdown.defaultProps = defaultProps;
 
 export default injectIntl(PresentationDownloadDropdown);

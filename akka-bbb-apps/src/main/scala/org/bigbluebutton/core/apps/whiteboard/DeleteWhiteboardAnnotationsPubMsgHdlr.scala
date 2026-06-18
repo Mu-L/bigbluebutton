@@ -1,9 +1,9 @@
 package org.bigbluebutton.core.apps.whiteboard
 
-import org.bigbluebutton.core.running.LiveMeeting
 import org.bigbluebutton.common2.msgs._
-import org.bigbluebutton.core.bus.MessageBus
 import org.bigbluebutton.core.apps.{ PermissionCheck, RightsManagementTrait }
+import org.bigbluebutton.core.bus.MessageBus
+import org.bigbluebutton.core.running.LiveMeeting
 
 trait DeleteWhiteboardAnnotationsPubMsgHdlr extends RightsManagementTrait {
   this: WhiteboardApp2x =>
@@ -11,7 +11,7 @@ trait DeleteWhiteboardAnnotationsPubMsgHdlr extends RightsManagementTrait {
   def handle(msg: DeleteWhiteboardAnnotationsPubMsg, liveMeeting: LiveMeeting, bus: MessageBus): Unit = {
 
     def broadcastEvent(msg: DeleteWhiteboardAnnotationsPubMsg, removedAnnotationsIds: Array[String]): Unit = {
-      val routing = Routing.addMsgToHtml5InstanceIdRouting(liveMeeting.props.meetingProp.intId, liveMeeting.props.systemProps.html5InstanceId.toString)
+      val routing = Routing.addMsgToClientRouting(MessageTypes.BROADCAST_TO_MEETING, liveMeeting.props.meetingProp.intId, msg.header.userId)
       val envelope = BbbCoreEnvelope(DeleteWhiteboardAnnotationsEvtMsg.NAME, routing)
       val header = BbbClientMsgHeader(DeleteWhiteboardAnnotationsEvtMsg.NAME, liveMeeting.props.meetingProp.intId, msg.header.userId)
 

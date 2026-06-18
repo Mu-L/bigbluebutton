@@ -5,6 +5,31 @@ and GitHub Actions (see [deploy-docs.yml](../.github/workflows/deploy-docs.yml))
 
 ## Local Development
 
+### Docker environment approach
+
+To run the docs in dev environments (likely BigBlueButton docker container) you'll run the following command:
+
+```bash
+./run-dev.sh
+```
+
+Now this command is going to start the server so you can access it.
+
+### Develop branch details
+
+If you want to test the documentation as a whole, we suggest you to check out to the `develop` branch. There you'll have the ability to build all the versioning we currently support (3.0, 2.7, 2.6 and 2.5).
+
+If you are already into the `develop` branch, to run the docs you'll run the following command first outside a docker-container (Previous to the `run-dev.sh`):
+
+```bash
+./build.sh --remote upstream
+```
+
+Feel free to edit the command and insert whatever remote fork you want to fetch from. For most cases `upstream` is pointing to the official repo (and that's what we recommend fetching from).
+
+
+### Pure Local environment (no docker container needed)
+
 To test build the docs locally use:
 
 ```bash
@@ -12,7 +37,16 @@ $ npm ci  # install docusaurus and dependencies (based on the package-lock.json 
 $ npx docusaurus start  # start local dev server
 ```
 
-By default `docusaurus.config.js` contains instructions for the building of a few extra branches. You may want to drop all but the current branch. For example:
+By default `docusaurus.config.js` contains instructions for the building of a few extra branches. However, on in a development environment you may run into the following error from docusaurus:
+
+
+
+
+![Development setup for docusaurus possible error](/docusaurus_start_error_001.png)
+
+`Error: The docs folder does not exist for version "2.6". A docs folder is expected to be found at versioned_docs/version-2.6.`
+
+In this case you may want to drop all but the current branch. For example:
 
 ```
 diff --git a/docs/docusaurus.config.js b/docs/docusaurus.config.js
@@ -20,7 +54,7 @@ index 50b72b12ec..04f360a955 100644
 --- a/docs/docusaurus.config.js
 +++ b/docs/docusaurus.config.js
 @@ -38,12 +38,6 @@ const config = {
-                     lastVersion: '2.7',
+                     lastVersion: '...',
                      includeCurrentVersion: false,
                      versions: {
 -                        '2.5-legacy': {
@@ -48,13 +82,33 @@ currently checkout out version which is recommended for local development
 (building all the versions locally can lead to problems with the live
 updates when using `npx docusaurus start`).
 
+### Comments and tips
+
+**Use Link tags when adding to the docs**
+In order to avoid problems with referencing within the documentation, we highly recommend you to use Link tags inside react files such as `docs/data/create.tsx` instead of `a` tags.
+
+So an example would be:
+
+Instead of:
+```tsx
+<a href='/administration/install/#minimum-server-requirements'>Here are the minimum requirements</a>
+```
+
+Use:
+```tsx
+<Link to='/administration/install/#minimum-server-requirements'>Here are the minimum requirements</a>
+```
+
+For more information, refer back to the official docusaurus documentation: https://docusaurus.io/docs/docusaurus-core#link
+
 ### Build
 
 If you only want to build the docs you can run:
 
 ```
-$ npm clear # ensure cached content is not interfering with your changes
+$ npx docusaurus clear # ensure cached content is not interfering with your changes
 $ npx docusaurus build
+$ npm run serve
 ```
 
 This command generates static content into the `build` directory

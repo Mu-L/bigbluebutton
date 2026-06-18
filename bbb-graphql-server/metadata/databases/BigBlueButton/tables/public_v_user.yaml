@@ -11,6 +11,7 @@ object_relationships:
     using:
       manual_configuration:
         column_mapping:
+          meetingId: meetingId
           userId: userId
         insertion_order: null
         remote_table:
@@ -34,19 +35,21 @@ object_relationships:
         remote_table:
           name: v_meeting
           schema: public
-  - name: reaction
+  - name: userLockSettings
     using:
       manual_configuration:
         column_mapping:
+          meetingId: meetingId
           userId: userId
         insertion_order: null
         remote_table:
-          name: v_user_reaction_current
+          name: v_user_lockSettings
           schema: public
   - name: voice
     using:
       manual_configuration:
         column_mapping:
+          meetingId: meetingId
           userId: userId
         insertion_order: null
         remote_table:
@@ -57,6 +60,7 @@ array_relationships:
     using:
       manual_configuration:
         column_mapping:
+          meetingId: meetingId
           userId: userId
         insertion_order: null
         remote_table:
@@ -81,19 +85,19 @@ select_permissions:
         - away
         - awayTime
         - banned
+        - captionLocale
         - clientType
         - color
         - disconnected
-        - emoji
-        - emojiTime
         - expired
         - extId
+        - bot
         - guest
         - guestStatus
         - hasDrawPermissionOnCurrentPage
         - isDialIn
         - isModerator
-        - isOnline
+        - currentlyInMeeting
         - isRunningEchoTest
         - joined
         - locked
@@ -101,10 +105,16 @@ select_permissions:
         - mobile
         - name
         - nameSortable
+        - firstName
+        - firstNameSortable
+        - lastName
+        - lastNameSortable
         - pinned
         - presenter
         - raiseHand
         - raiseHandTime
+        - reactionEmoji
+        - registeredAt
         - registeredOn
         - role
         - speechLocale
@@ -114,17 +124,8 @@ select_permissions:
           - meetingId:
               _eq: X-Hasura-MeetingId
           - _or:
-              - meetingId:
-                  _eq: X-Hasura-ModeratorInMeeting
               - isModerator:
                   _eq: true
               - meetingId:
-                  _neq: X-Hasura-LockedInMeeting
-              - _exists:
-                  _table:
-                    name: v_meeting_showUserlist
-                    schema: public
-                  _where:
-                    meetingId:
-                      _eq: X-Hasura-MeetingId
+                  _eq: X-Hasura-UserListNotLockedInMeeting
       allow_aggregations: true

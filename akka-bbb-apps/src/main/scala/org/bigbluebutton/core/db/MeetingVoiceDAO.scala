@@ -1,11 +1,9 @@
 package org.bigbluebutton.core.db
 
-import org.bigbluebutton.common2.domain.{ VoiceProp }
+import org.bigbluebutton.common2.domain.VoiceProp
+import org.bigbluebutton.core2.MeetingStatus2x
 import slick.jdbc.PostgresProfile.api._
-import slick.lifted.{ ProvenShape }
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.{ Failure, Success }
+import slick.lifted.ProvenShape
 
 case class MeetingVoiceDbModel(
     meetingId:   String,
@@ -24,12 +22,12 @@ class MeetingVoiceDbTableDef(tag: Tag) extends Table[MeetingVoiceDbModel](tag, "
 
   //  def fk_meetingId: ForeignKeyQuery[MeetingDbTableDef, MeetingDbModel] = foreignKey("fk_meetingId", meetingId, TableQuery[MeetingDbTableDef])(_.meetingId)
 
-  override def * : ProvenShape[MeetingVoiceDbModel] = (meetingId, telVoice, voiceConf, dialNumber, muteOnStart) <> (MeetingVoiceDbModel.tupled, MeetingVoiceDbModel.unapply)
+  override def * : ProvenShape[MeetingVoiceDbModel] = (meetingId, telVoice, voiceConf, dialNumber, muteOnStart).<>(MeetingVoiceDbModel.tupled, MeetingVoiceDbModel.unapply)
 }
 
 object MeetingVoiceDAO {
   def insert(meetingId: String, voiceProp: VoiceProp) = {
-    DatabaseConnection.db.run(
+    DatabaseConnection.enqueue(
       TableQuery[MeetingVoiceDbTableDef].forceInsert(
         MeetingVoiceDbModel(
           meetingId = meetingId,
@@ -39,11 +37,15 @@ object MeetingVoiceDAO {
           muteOnStart = voiceProp.muteOnStart
         )
       )
-    ).onComplete {
-        case Success(rowsAffected) => {
-          DatabaseConnection.logger.debug(s"$rowsAffected row(s) inserted in MeetingVoice table!")
-        }
-        case Failure(e) => DatabaseConnection.logger.error(s"Error inserting MeetingVoice: $e")
-      }
+    )
+  }
+
+  def updateMuteOnStart(meetingId: String, meetingStatus: MeetingStatus2x) = {
+    DatabaseConnection.enqueue(
+      TableQuery[MeetingVoiceDbTableDef]
+        .filter(_.meetingId === meetingId)
+        .map(u => (u.muteOnStart))
+        .update((MeetingStatus2x.isMeetingMuted(meetingStatus)))
+    )
   }
 }

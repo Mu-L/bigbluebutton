@@ -1,39 +1,35 @@
-const { test } = require('@playwright/test');
+const { test } = require('../fixtures');
 const { fullyParallel } = require('../playwright.config');
-const { linkIssue } = require('../core/helpers');
+const { initializePages, linkIssue } = require('../core/helpers');
 const { Chat } = require('./chat');
 
-if (!fullyParallel) test.describe.configure({ mode: 'serial' });
-
-test.describe('Chat', () => {
+test.describe('Chat', { tag: '@ci' }, () => {
   const chat = new Chat();
-  let context;
-  test.beforeAll(async ({ browser }) => {
-    context = await browser.newContext();
-    const page = await context.newPage();
-    await chat.initModPage(page, true);
-    await chat.initUserPage(true, context);
+
+  test.describe.configure({ mode: fullyParallel ? 'parallel' : 'serial' });
+  test[fullyParallel ? 'beforeEach' : 'beforeAll'](async ({ browser }) => {
+    await initializePages(chat, browser, { isMultiUser: true });
   });
 
-  // https://docs.bigbluebutton.org/2.6/release-tests.html#public-message-automated
-  test('Send public message @ci', async () => {
+  // https://docs.bigbluebutton.org/3.0/testing/release-testing/#public-message-automated
+  test('Send public message', async () => {
     await chat.sendPublicMessage();
   });
 
-  // https://docs.bigbluebutton.org/2.6/release-tests.html#private-message-automated
-  test('Send private message @ci', async () => {
+  // https://docs.bigbluebutton.org/3.0/testing/release-testing/#private-message-automated
+  test('Send private message', async () => {
     await chat.sendPrivateMessage();
   });
 
-  test('Clear chat @ci', async () => {
+  test('Clear chat', async () => {
     await chat.clearChat();
   });
 
-  test.skip('Copy chat', async () => {
-    await chat.copyChat(context);
+  test('Copy chat', async () => {
+    await chat.copyChat();
   });
 
-  test('Save chat @ci', async ({}, testInfo) => {
+  test('Save chat', async ({}, testInfo) => {
     await chat.saveChat(testInfo);
   });
 
@@ -41,54 +37,52 @@ test.describe('Chat', () => {
     await chat.characterLimit();
   });
 
-  // https://docs.bigbluebutton.org/2.6/release-tests.html#sending-empty-chat-message-automated
-  test('Not able to send an empty message @ci', async () => {
+  // https://docs.bigbluebutton.org/3.0/testing/release-testing/#sending-empty-chat-message-automated
+  test('Not able to send an empty message', async () => {
     await chat.emptyMessage();
   });
 
   test('Copy and paste public message', async () => {
-    linkIssue('15948');
     await chat.copyPastePublicMessage();
   })
 
-  test('Send emoji on public chat @ci', async () => {
+  test('Send emoji on public chat using emoji picker', { tag: '@setting-required:chat.emojiPicker' }, async () => {
     await chat.sendEmoji();
   });
 
-  test.skip('Copy chat with emoji', async () => {
-    // Only works in headed mode
+  test('Copy chat with emoji', async () => {
     await chat.emojiCopyChat();
   });
 
-  test('Close private chat @ci', async () => {
-    await chat.closePrivateChat();
+  test('Hide public messages', async () => {
+    await chat.hidePublicMessages();
   });
 
-  test('Save chat with emoji @ci', async ({}, testInfo) => {
+  test('Save chat with emoji', { tag: '@setting-required:chat.emojiPicker' }, async ({}, testInfo) => {
     await chat.emojiSaveChat(testInfo);
   });
 
-  test('Send emoji on private chat', async () => {
+  test('Send emoji on private chat', { tag: '@setting-required:chat.emojiPicker' }, async () => {
     await chat.emojiSendPrivateChat();
   });
 
-  test('Send auto converted emoji on public chat', async () => {
+  test('Send auto converted emoji on public chat', { tag: '@setting-required:chat.autoConvertEmoji' }, async () => {
     await chat.autoConvertEmojiPublicChat();
   });
 
-  test.skip('Copy chat with auto converted emoji', async () => {
+  test('Copy chat with auto converted emoji', { tag: '@setting-required:chat.autoConvertEmoji' }, async () => {
     await chat.autoConvertEmojiCopyChat();
   });
 
-  test('Auto convert emoji save chat', async ({ context }, testInfo) => {
+  test('Auto convert emoji save chat', { tag: '@setting-required:chat.autoConvertEmoji' }, async ({}, testInfo) => {
     await chat.autoConvertEmojiSaveChat(testInfo);
   });
 
-  test('Send auto converted emoji on private chat', async () => {
+  test('Send auto converted emoji on private chat', { tag: '@setting-required:chat.autoConvertEmoji' }, async () => {
     await chat.autoConvertEmojiSendPrivateChat();
   });
 
-  test('Private chat disabled when user leaves meeting @ci', async () => {
+  test('Private chat disabled when user leaves meeting', async () => {
     await chat.chatDisabledUserLeaves();
   });
 });

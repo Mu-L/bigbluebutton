@@ -1,11 +1,13 @@
 import React, { PureComponent } from 'react';
 import { defineMessages, injectIntl } from 'react-intl';
 import Button from '/imports/ui/components/common/button/component';
-import ConnectionStatusModalComponent from '/imports/ui/components/connection-status/modal/component';
+import ConnectionStatusModalComponent from '/imports/ui/components/connection-status/modal/container';
 import ConnectionStatusService from '/imports/ui/components/connection-status/service';
+import SettingsMenuContainer from '/imports/ui/components/settings/container';
 import Icon from '/imports/ui/components/connection-status/icon/component';
 import Styled from './styles';
 import Auth from '/imports/ui/services/auth';
+import deviceInfo, { isMobile } from '/imports/utils/deviceInfo';
 
 const intlMessages = defineMessages({
   label: {
@@ -18,12 +20,16 @@ const intlMessages = defineMessages({
   },
 });
 
+const DATA_SAVINGS_TAB_NUMBER = 2;
+
 class ConnectionStatusButton extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {
       isModalOpen: false,
+      adjustYourSettingsModalIsOpen: false,
     }
+    this.setAdjustYourSettingsModalIsOpen = this.setAdjustYourSettingsModalIsOpen.bind(this);
   }
 
   renderIcon(level = 'normal') {
@@ -37,23 +43,47 @@ class ConnectionStatusButton extends PureComponent {
     );
   }
 
-  setModalIsOpen = (isOpen) => this.setState({ isModalOpen: isOpen }); 
+  setModalIsOpen = (isOpen) => this.setState({ isModalOpen: isOpen });
+  
+  setAdjustYourSettingsModalIsOpen(isOpen) {
+    this.setState({adjustYourSettingsModalIsOpen: isOpen });
+  }
 
-  renderModal(isModalOpen) {
+  renderModal() {
     const {
-      connectionData,
-    } = this.props;
+      isModalOpen,
+      adjustYourSettingsModalIsOpen,
+    } = this.state;
 
     return (
-      isModalOpen ?
+      isModalOpen && !adjustYourSettingsModalIsOpen ?
       <ConnectionStatusModalComponent
         {...{
           isModalOpen,
           setModalIsOpen: this.setModalIsOpen,
-          connectionData,
+          setAdjustYourSettingsModalIsOpen: this.setAdjustYourSettingsModalIsOpen,
         }}
       /> : null
     )
+  }
+
+  renderAjustYourSettingsModal() {
+    const {
+      adjustYourSettingsModalIsOpen,
+    } = this.state;
+
+    return (
+      adjustYourSettingsModalIsOpen &&
+        <SettingsMenuContainer
+          selectedTab={DATA_SAVINGS_TAB_NUMBER}
+          {...{
+            onRequestClose: () => this.setAdjustYourSettingsModalIsOpen(false),
+            priority: 'medium',
+            setIsOpen: this.setAdjustYourSettingsModalIsOpen,
+            isOpen: true,
+          }}
+        />
+    );
   }
 
   render() {
@@ -61,7 +91,7 @@ class ConnectionStatusButton extends PureComponent {
       intl,
       connected,
     } = this.props;
-    const { isModalOpen } = this.state;
+    const { isModalOpen, adjustYourSettingsModalIsOpen } = this.state;
 
 
     if (!connected) {
@@ -78,24 +108,20 @@ class ConnectionStatusButton extends PureComponent {
             circle
             onClick={() => {}}
             data-test="connectionStatusButton"
+            isMobile={isMobile}
           />
-          {this.renderModal(isModalOpen)}
+          {this.renderModal(isModalOpen, adjustYourSettingsModalIsOpen)}
+          {this.renderAjustYourSettingsModal()}
         </Styled.ButtonWrapper>
       );
     }
 
     const {
-      connectionData,
+      myCurrentStatus,
     } = this.props;
 
-    const ownConnectionData = connectionData.filter((curr) => curr.user.userId === Auth.userID);
-
-    const currentStatus = ownConnectionData && ownConnectionData.length > 0
-      ? ownConnectionData[0].currentStatus
-      : 'normal';
-
     let color;
-    switch (currentStatus) {
+    switch (myCurrentStatus) {
       case 'warning':
         color = 'success';
         break;
@@ -114,7 +140,7 @@ class ConnectionStatusButton extends PureComponent {
     return (
       <Styled.ButtonWrapper>
         <Button
-          customIcon={this.renderIcon(currentStatus)}
+          customIcon={this.renderIcon(myCurrentStatus)}
           label={intl.formatMessage(intlMessages.label)}
           hideLabel
           aria-label={intl.formatMessage(intlMessages.description)}
@@ -124,7 +150,8 @@ class ConnectionStatusButton extends PureComponent {
           onClick={() => this.setState({isModalOpen: true})}
           data-test="connectionStatusButton"
         />
-        {this.renderModal(isModalOpen)}
+        {this.renderModal(isModalOpen, adjustYourSettingsModalIsOpen)}
+        {this.renderAjustYourSettingsModal()}
       </Styled.ButtonWrapper>
     );
   }

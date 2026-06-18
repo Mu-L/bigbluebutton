@@ -20,11 +20,10 @@ class LiveMeeting(
     val registeredUsers:     RegisteredUsers,
     val polls:               Polls, // 2x
     val wbModel:             WhiteboardModel,
-    val presModel:           PresentationModel,
-    val captionModel:        CaptionModel,
     val webcams:             Webcams,
     val voiceUsers:          VoiceUsers,
     val users2x:             Users2x,
     val guestsWaiting:       GuestsWaiting,
     val clientSettings:      Map[String, Object],
+    val plugins:             PluginModel,
 )

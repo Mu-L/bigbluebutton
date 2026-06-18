@@ -1,11 +1,11 @@
-const { expect, test } = require('@playwright/test');
+const { expect } = require('@playwright/test');
 const { MultiUsers } = require('../user/multiusers');
 const e = require('../core/elements');
 const util = require('./util.js');
-const utilPresentation = require('../presentation/util');
 const { ELEMENT_WAIT_LONGER_TIME, ELEMENT_WAIT_TIME } = require('../core/constants');
 const { getSettings } = require('../core/settings');
-const { waitAndClearDefaultPresentationNotification } = require('../notifications/util');
+const { skipSlide } = require('../presentation/util');
+const { sleep } = require('../core/helpers.js');
 
 class Polling extends MultiUsers {
   constructor(browser, context) {
@@ -15,306 +15,272 @@ class Polling extends MultiUsers {
 
   async createPoll() {
     await util.startPoll(this.modPage);
-    await this.modPage.hasElement(e.pollMenuButton);
-
-    await this.modPage.waitAndClick(e.closePollingBtn);
-    await this.modPage.wasRemoved(e.closePollingBtn);
+    await this.modPage.hasElement(e.publishPollingLabel, 'should display the publish poll button');
+    await this.modPage.hasElement(e.cancelPollBtn, 'should display the cancel poll button after the poll creation');
+    await this.userPage.hasElement(e.pollingContainer, 'should display the poll container for the attendee');
   }
 
   async pollAnonymous() {
     await this.modPage.waitForSelector(e.whiteboard, ELEMENT_WAIT_LONGER_TIME);
-    await util.startPoll(this.modPage, false, true);
-    await this.modPage.waitForSelector(e.publishPollingLabel);
+    await util.startPoll(this.modPage, true);
+    await this.modPage.hasElement(e.publishPollingLabel, 'should display the poll publish button after the poll starts');
     await this.userPage.waitAndClick(e.pollAnswerOptionBtn);
-    await this.userPage.wasRemoved(e.receivedAnswer);
-
-    await this.modPage.waitAndClick(e.closePollingBtn);
-    await this.modPage.wasRemoved(e.closePollingBtn);
+    await this.userPage.wasRemoved(e.receivedAnswer, 'should not display the received answer for the attendee');
   }
 
   async quickPoll() {
-    await utilPresentation.uploadSinglePresentation(this.modPage, e.questionSlideFileName);
-
+    await util.uploadSPresentationForTestingPolls(this.modPage, e.questionSlideFileName);
     // The slide needs to be uploaded and converted, so wait a bit longer for this step
-    await this.modPage.waitAndClick(e.quickPoll, ELEMENT_WAIT_LONGER_TIME);
-    await this.modPage.waitForSelector(e.pollMenuButton);
-
-    await this.userPage.hasElement(e.pollingContainer);
-
-    await this.modPage.waitAndClick(e.closePollingBtn);
-    await this.modPage.wasRemoved(e.closePollingBtn);
+    await this.modPage.hasElement(e.quickPoll, 'should display the quick poll button for the moderator when the presentation is uploaded', ELEMENT_WAIT_LONGER_TIME);
+    await this.modPage.waitAndClick(e.quickPoll);
+    await this.userPage.hasElement(e.pollingContainer, 'should display the polling container for the attendee when the quick poll starts');
+    await this.userPage.hasNElements(e.pollAnswerOptionBtn, 5, 'should display 5 poll answer options for the attendee');
+    await this.userPage.waitAndClick(e.pollAnswerOptionBtn);
+    await this.modPage.hasText(e.userVoteLiveResult, 'a) first', 'should display the correct live vote result from the attendee');
   }
 
   async pollUserResponse() {
-    await this.modPage.waitForSelector(e.whiteboard);
+    await this.modPage.waitForSelector(e.whiteboard, ELEMENT_WAIT_LONGER_TIME);
     await util.openPoll(this.modPage);
 
     await this.modPage.type(e.pollQuestionArea, e.pollQuestion);
     await this.modPage.waitAndClick(e.userResponseBtn);
     await this.modPage.waitAndClick(e.startPoll);
 
-    await this.userPage.waitForSelector(e.pollingContainer);
+    await this.userPage.hasElement(e.pollingContainer, 'should display the polling container for the user to answer it');
     await this.userPage.type(e.pollAnswerOptionInput, e.answerMessage);
     await this.userPage.waitAndClick(e.pollSubmitAnswer);
 
-    await this.modPage.hasText(e.receivedAnswer, e.answerMessage);
+    await this.modPage.hasText(e.userVoteLiveResult, e.answerMessage, 'should display the answer sent by the attendee');
 
     await this.modPage.waitAndClick(e.publishPollingLabel);
-    await this.modPage.waitForSelector(e.restartPoll);
+    await this.modPage.wasRemoved(e.pollingContainer, 'should close the polling container after publishing the label');
 
-    await this.modPage.hasElement(e.wbDrawnRectangle);
-    await this.userPage.hasElement(e.wbDrawnRectangle);
-
-    await this.modPage.waitAndClick(e.closePollingBtn);
-    await this.modPage.wasRemoved(e.closePollingBtn);
+    await this.modPage.hasElement(e.wbPollShape, ELEMENT_WAIT_LONGER_TIME);
+    await this.userPage.hasElement(e.wbPollShape);
   }
 
   async stopPoll() {
     await this.modPage.waitForSelector(e.whiteboard, ELEMENT_WAIT_LONGER_TIME);
     await util.startPoll(this.modPage);
-    await this.userPage.waitForSelector(e.pollingContainer);
+    await this.userPage.hasElement(e.pollingContainer, 'should display the polling container for the attendee after the poll is created');
     await this.modPage.waitAndClick(e.cancelPollBtn);
-    await this.userPage.wasRemoved(e.pollingContainer);
-
-    await this.modPage.waitAndClick(e.closePollingBtn);
-    await this.modPage.wasRemoved(e.closePollingBtn);
+    await this.userPage.wasRemoved(e.pollingContainer, 'should not display the polling container after the poll is canceled');
+    await this.modPage.hasElement(e.pollQuestionArea, 'should display the poll question area after the poll is canceled');
   }
 
   async manageResponseChoices() {
     await this.modPage.waitForSelector(e.whiteboard, ELEMENT_WAIT_LONGER_TIME);
-    await this.startNewPoll();
+    await this.openNewPoll();
     const initialRespCount = await this.modPage.getSelectorCount(e.pollOptionItem);
 
     // Add
     await this.modPage.waitAndClick(e.addPollItem);
     await this.typeOnLastChoiceInput();
     await this.modPage.waitAndClick(e.startPoll);
+    await this.modPage.hasElementDisabled(e.publishPollingLabel, 'should display the publish poll button disabled before the poll is started');
 
-    await expect(initialRespCount + 1).toEqual(await this.getAnswerOptionCount());
+    await expect(initialRespCount + 1, 'should display the initial quantity of poll options itens plus 1').toEqual(await this.getAnswerOptionCount());
     await this.checkLastOptionText();
 
     // Delete
-    await this.startNewPoll();
+    await this.openNewPoll();
     await this.modPage.waitAndClick(e.deletePollOption);
     await this.modPage.waitAndClick(e.startPoll);
+    await this.modPage.hasElementDisabled(e.publishPollingLabel, 'should display the publish poll button disabled before the poll is started');
 
-    await expect(initialRespCount - 1).toEqual(await this.getAnswerOptionCount());
+    await expect(initialRespCount - 1, 'should display the initial quantity of poll options itens minus 1').toEqual(await this.getAnswerOptionCount());
 
     // Edit
-    await this.startNewPoll();
+    await this.openNewPoll();
     await this.typeOnLastChoiceInput();
     await this.modPage.waitAndClick(e.startPoll);
+    await this.modPage.hasElementDisabled(e.publishPollingLabel, 'should display the publish poll button disabled before the poll is started');
 
-    await expect(initialRespCount).toEqual(await this.getAnswerOptionCount());
+    await expect(initialRespCount, 'should display the initial quantity of poll options itens').toEqual(await this.getAnswerOptionCount());
     await this.checkLastOptionText();
-
-    await this.modPage.waitAndClick(e.closePollingBtn);
-
-    await this.modPage.waitAndClick(e.actions);
-    await this.modPage.waitAndClick(e.managePresentations);
-    await this.modPage.waitAndClick(e.removePresentation);
-    await this.modPage.waitAndClick(e.confirmManagePresentation);
   }
 
-  async notAbleStartNewPollWithoutPresentation() {
-    await this.modPage.waitAndClick(e.actions);
+  async startPollWithoutPresentation() {
+    await this.modPage.waitForSelector(e.whiteboard, ELEMENT_WAIT_LONGER_TIME);
+    await this.modPage.waitAndClick(e.mediaAreaButton);
     await this.modPage.waitAndClick(e.managePresentations);
-    await this.modPage.waitAndClick(e.removePresentation);
+    // remove all presentations
+    const allRemovePresentationBtn = await this.modPage.getLocator(e.removePresentation).all();
+    // reversing the order of clicking is needed to avoid failure as the tooltip shows in front of the below button
+    const reversedRemovePresentationButtons = allRemovePresentationBtn.reverse();
+    for (const removeBtn of reversedRemovePresentationButtons) {
+      await removeBtn.click({ timeout: ELEMENT_WAIT_TIME });
+    }
     await this.modPage.waitAndClick(e.confirmManagePresentation);
-
-    await this.modPage.waitAndClick(e.actions);
-    await this.modPage.waitAndClick(e.polling);
-    await this.modPage.hasElement(e.noPresentation);
+    await util.startPoll(this.modPage);
+    await this.userPage.hasElement(e.pollingContainer, 'should display the polling container for the attendee after the poll is created');
+    await this.userPage.waitAndClick(e.pollAnswerOptionBtn);
+    // publish the poll and check the chat results
+    await this.modPage.waitAndClick(e.publishPollingLabel);
+    await this.modPage.hasElement(e.chatPollMessageText);
+    await this.userPage.hasElement(e.chatPollMessageText);
   }
 
   async customInput() {
-    await utilPresentation.uploadSinglePresentation(this.modPage, e.questionSlideFileName);
-
-    await this.modPage.waitAndClick(e.actions);
-    await this.modPage.waitAndClick(e.polling);
+    await this.modPage.waitForSelector(e.whiteboard, ELEMENT_WAIT_LONGER_TIME);
+    await this.modPage.waitAndClick(e.pollSidebarButton);
     await this.modPage.waitAndClickElement(e.autoOptioningPollBtn);
 
     await this.modPage.type(e.pollQuestionArea, 'Test');
     await this.modPage.waitAndClick(e.addPollItem);
     await this.modPage.type(e.pollOptionItem, 'test1');
+    await this.modPage.waitAndClick(e.addPollItem);
+    await this.modPage.type(e.pollOptionItem2, 'test2');
     await this.modPage.waitAndClick(e.startPoll);
 
-    await this.userPage.hasElement(e.pollingContainer);
+    await this.userPage.hasElement(e.pollingContainer, 'should display the polling container for the attendee after starting the poll');
     await this.userPage.waitAndClick(e.pollAnswerOptionBtn);
 
-    await this.modPage.hasText(e.currentPollQuestion, /Test/);
-    await this.modPage.hasText(e.answer1, '1');
-
-    await this.modPage.waitAndClick(e.closePollingBtn);
-    await this.modPage.wasRemoved(e.closePollingBtn);
+    await this.modPage.hasText(e.currentPollQuestion, /Test/, 'should display the answer that the attendee selected');
+    await this.modPage.hasText(e.userVoteLiveResult, '1', 'should display the live result');
   }
 
   async allowMultipleChoices() {
-    await this.modPage.waitAndClick(e.actions);
-    await this.modPage.waitAndClick(e.polling);
+    await this.modPage.waitAndClick(e.pollSidebarButton);
     await this.modPage.waitAndClickElement(e.autoOptioningPollBtn);
 
     await this.modPage.type(e.pollQuestionArea, 'Test');
     await this.modPage.waitAndClickElement(e.allowMultiple);
 
     await this.modPage.waitAndClick(e.addPollItem);
-    await this.modPage.waitAndClick(e.startPoll);
-    await this.modPage.hasElement(e.errorNoValueInput);
+    await this.modPage.hasElementDisabled(e.startPoll, 'should display the start poll button disabled');
 
     await this.modPage.type(e.pollOptionItem1, 'test1');
     await this.modPage.waitAndClick(e.addPollItem);
     await this.modPage.type(e.pollOptionItem2, 'test2');
     await this.modPage.waitAndClick(e.startPoll);
-    await this.modPage.hasText(e.currentPollQuestion, /Test/);
+    await this.modPage.hasText(e.currentPollQuestion, /Test/, 'should display the current poll question after the poll has started');
 
     await this.userPage.waitAndClick(e.firstPollAnswerOptionBtn);
     await this.userPage.waitAndClick(e.secondPollAnswerOptionBtn);
     await this.userPage.waitAndClickElement(e.submitAnswersMultiple);
 
-    await this.modPage.hasText(e.answer1, '1');
-    await this.modPage.hasText(e.answer2, '1');
-
-    await this.modPage.waitAndClick(e.closePollingBtn);
-    await this.modPage.wasRemoved(e.closePollingBtn);
+    await this.modPage.hasText(e.userVoteLiveResult, '1', 'should display the user vote number after the attendee has answered the poll');
+    await this.modPage.hasText(e.userVoteLiveResult, '2', 'should display the user vote number after the attendee has answered the poll');
   }
 
   async smartSlidesQuestions() {
-    await this.modPage.hasElement(e.whiteboard, ELEMENT_WAIT_LONGER_TIME);
-    await utilPresentation.uploadSinglePresentation(this.modPage, e.smartSlides1, ELEMENT_WAIT_LONGER_TIME);
-    await this.userPage.hasElement(e.userListItem);
+    await this.modPage.waitForSelector(e.whiteboard, ELEMENT_WAIT_LONGER_TIME);
+    await util.uploadSPresentationForTestingPolls(this.modPage, e.smartSlides1);
 
     // Type Response
-    await this.modPage.waitAndClick(e.quickPoll);
-    await this.userPage.hasElement(e.responsePollQuestion);
+    await this.modPage.waitAndClick(e.quickPoll, ELEMENT_WAIT_LONGER_TIME);
+    await this.userPage.hasElement(e.responsePollQuestion, 'should display the poll question after quick poll starts');
     await this.userPage.type(e.pollAnswerOptionInput, 'test');
     await this.userPage.waitAndClick(e.pollSubmitAnswer);
-    await this.userPage.wasRemoved(e.pollingContainer, ELEMENT_WAIT_LONGER_TIME);
-    await this.modPage.hasText(e.receivedAnswer, 'test');
+    await this.userPage.wasRemoved(e.pollingContainer, 'should not display the polling container after the attendee answer the poll', ELEMENT_WAIT_LONGER_TIME);
+    await this.modPage.hasText(e.userVoteLiveResult, 'test');
 
     await this.modPage.waitAndClick(e.publishPollingLabel);
-    await this.modPage.waitAndClick(e.closePollingBtn);
-    await this.modPage.wasRemoved(e.closePollingBtn);
+    await this.modPage.wasRemoved(e.pollingContainer, 'should not display the polling container after the poll be published');
 
     // Multiple Choices
-    await this.modPage.waitAndClick(e.nextSlide);
+    await sleep(500); // avoid error when the tooltip is in front of the button due to layout shift
+    await skipSlide(this.modPage);
     await this.modPage.waitAndClick(e.quickPoll);
     await this.userPage.waitAndClick(e.firstPollAnswerDescOption);
     await this.userPage.waitAndClick(e.secondPollAnswerDescOption);
     await this.userPage.waitAndClick(e.submitAnswersMultiple);
-    await this.modPage.hasText(e.answer1, '1');
-    await this.modPage.hasText(e.answer2, '1');
+    await this.modPage.hasText(e.userVoteLiveResult, 'A) 2222', 'should display the live vote result for the answers after the attendee answer the multiple choices polling ');
+    await this.modPage.hasText(e.userVoteLiveResult, 'B) 3333', 'should display the live vote result for the answers after the attendee answer the multiple choices polling ');
 
     await this.modPage.waitAndClick(e.publishPollingLabel);
-    await this.modPage.waitAndClick(e.closePollingBtn);
-    await this.modPage.wasRemoved(e.closePollingBtn);
+    await this.modPage.wasRemoved(e.pollingContainer, 'should not display the polling container after the poll is published');
 
     // One option answer
-    await this.modPage.waitAndClick(e.nextSlide);
+    await sleep(500); // avoid error when the tooltip is in front of the button due to layout shift
+    await skipSlide(this.modPage);
     await this.modPage.waitAndClick(e.quickPoll);
     await this.userPage.waitAndClick(e.pollAnswerOptionE);
-    await this.modPage.hasText(e.answerE, '1');
+    await this.modPage.hasText(e.userVoteLiveResult, 'E) 22222', 'should display the vote result after the poll is answered');
 
     await this.modPage.waitAndClick(e.publishPollingLabel);
-    await this.modPage.waitAndClick(e.closePollingBtn);
-    await this.modPage.wasRemoved(e.closePollingBtn);
+    await this.modPage.wasRemoved(e.pollingContainer, 'should not display the polling container after the poll is published');
 
     // Yes/No/Abstention
-    await this.modPage.waitAndClick(e.nextSlide);
+    await sleep(500); // avoid error when the tooltip is in front of the button due to layout shift
+    await skipSlide(this.modPage);
     await this.modPage.waitAndClick(e.yesNoOption);
     await this.modPage.waitAndClick(e.yesNoAbstentionOption)
     await this.userPage.waitAndClick(e.pollAnswerOptionBtn);
-    await this.modPage.hasText(e.answer1, '1');
+    await this.modPage.hasText(e.userVoteLiveResult, 'Yes', 'should display the vote result after the attendee submit the answer');
 
     await this.modPage.waitAndClick(e.publishPollingLabel);
-    await this.modPage.waitAndClick(e.closePollingBtn);
-    await this.modPage.wasRemoved(e.closePollingBtn);
+    await this.modPage.wasRemoved(e.pollingContainer);
 
     // True/False
-    await this.modPage.waitAndClick(e.nextSlide);
+    await sleep(500); // avoid error when the tooltip is in front of the button due to layout shift
+    await skipSlide(this.modPage);
     await this.modPage.waitAndClick(e.quickPoll);
     await this.userPage.waitAndClick(e.pollAnswerOptionBtn);
-    await this.modPage.hasText(e.answer1, '1');
+    await this.modPage.hasText(e.userVoteLiveResult, 'True', 'should display the vote result after the attendee submit the answer');
     await this.modPage.waitAndClick(e.publishPollingLabel);
 
-    await this.modPage.hasElementDisabled(e.nextSlide);
-
-    await this.modPage.waitAndClick(e.closePollingBtn);
-    await this.modPage.wasRemoved(e.closePollingBtn);
+    await this.modPage.hasElementDisabled(e.nextSlide, 'should display the next slide button disabled since the smart slides has finished with all the questions');
+    await this.modPage.wasRemoved(e.pollingContainer, 'should not display the polling container after all the smart slides questions is finished');
   }
 
   async pollResultsOnChat() {
     const { pollChatMessage } = getSettings();
     
     await this.modPage.waitForSelector(e.whiteboard, ELEMENT_WAIT_LONGER_TIME);
-    await util.startPoll(this.modPage, true);
-    await this.modPage.waitAndClick(e.chatButton);
+    await util.startPoll(this.modPage);
+    await this.modPage.hasElementDisabled(e.publishPollingLabel, 'should display the publish polling button disabled without any answer sent from the user');
+    await this.userPage.waitAndClick(e.pollAnswerOptionBtn);
+    await this.modPage.hasElement(e.publishPollingLabel, 'should display the publish polling button enabled after the attendee answered the poll');
+    await this.modPage.waitAndClick(e.publishPollingLabel);
 
     const lastChatPollMessageTextModerator = await this.modPage.getLocator(e.chatPollMessageText).last();
-    if(!pollChatMessage) {
-      return expect(lastChatPollMessageTextModerator).toBeHidden({ ELEMENT_WAIT_TIME });
+    if (!pollChatMessage) {
+      return expect(lastChatPollMessageTextModerator, 'should not display the last chat poll message on the chat, so the poll results on the chat').toBeHidden({ ELEMENT_WAIT_TIME });
     }
-    await expect(lastChatPollMessageTextModerator).toBeVisible();
+    await expect(lastChatPollMessageTextModerator, 'should display the last chat poll message on the chat, so the poll results on the chat').toBeVisible();
     const lastChatPollMessageTextUser = await this.userPage.getLocator(e.chatPollMessageText).last();
-    await expect(lastChatPollMessageTextUser).toBeVisible();
+    await expect(lastChatPollMessageTextUser, 'should display the poll results on the chat for the attendee').toBeVisible();
   }
 
   async pollResultsOnWhiteboard() {
     await this.modPage.waitForSelector(e.whiteboard, ELEMENT_WAIT_LONGER_TIME);
-    await util.startPoll(this.modPage, true);
-    const wbDrawnRectangleLocator = await this.modPage.getLocator(e.wbDrawnRectangle).last();
-    await expect(wbDrawnRectangleLocator).toBeVisible({ timeout: ELEMENT_WAIT_TIME});
+    await util.startPoll(this.modPage);
 
-    const modWbLocator = this.modPage.getLocator(e.whiteboard);
-    const wbBox = await modWbLocator.boundingBox();
+    const wbDrawnRectangleLocator = await this.modPage.getLocator(e.wbPollShape);
+    const initialWbDrawnRectangleCount = await wbDrawnRectangleLocator.count();
 
-    await wbDrawnRectangleLocator.click();
-    await this.modPage.page.mouse.down();
-    await this.modPage.page.mouse.move(wbBox.x + 0.7 * wbBox.width, wbBox.y + 0.7 * wbBox.height);
-    await this.modPage.page.mouse.up();
-    await wbDrawnRectangleLocator.dblclick();
-    await this.modPage.page.keyboard.type('test');
-    await expect(wbDrawnRectangleLocator).toContainText('test');
-
-    // user turns to presenter to edit the poll results
-    await this.modPage.waitAndClick(e.userListItem);
-    await this.modPage.waitAndClick(e.makePresenter);
-
-    const wbDrawnRectangleUserLocator = await this.userPage.getLocator(e.wbDrawnRectangle).last();
-    await wbDrawnRectangleUserLocator.dblclick();
-    await this.userPage.page.keyboard.type('testUser');
-    await expect(wbDrawnRectangleUserLocator).toContainText('testUser');
-    
-    await this.modPage.waitAndClick(e.currentUser);
-    await this.modPage.waitAndClick(e.takePresenter);
-    await this.userPage.waitAndClick(e.hidePublicChat);
+    await this.modPage.hasElementDisabled(e.publishPollingLabel, 'should display the publish poll button disabled before the poll is started');
+    await this.userPage.waitAndClick(e.pollAnswerOptionBtn);
+    await this.modPage.hasElement(e.publishPollingLabel, 'should display the publish poll button enabled after the attendee answered the poll');
+    await this.modPage.waitAndClick(e.publishPollingLabel);
+    await expect(wbDrawnRectangleLocator,'should display a rectangle shape with the poll result on the whiteboard').toHaveCount(initialWbDrawnRectangleCount + 1);
   }
 
   async pollResultsInDifferentPresentation() {
-    await waitAndClearDefaultPresentationNotification(this.modPage);
-    
-
-    await utilPresentation.uploadSinglePresentation(this.modPage, e.questionSlideFileName);
     await util.startPoll(this.modPage);
+    await this.userPage.waitAndClick(e.pollAnswerOptionBtn);
+    await util.uploadSPresentationForTestingPolls(this.modPage, e.questionSlideFileName);
+    await this.modPage.hasElement(e.quickPoll, ELEMENT_WAIT_LONGER_TIME);
     await this.modPage.waitAndClick(e.publishPollingLabel);
-
     // Check poll results
-    await this.modPage.hasElement(e.wbDrawnRectangle);
-
-    await this.modPage.waitAndClick(e.closePollingBtn);
-    await this.modPage.wasRemoved(e.closePollingBtn);
+    await this.modPage.hasElement(e.wbPollShape, 'should display the poll results on the whiteboard');
   }
 
-  async startNewPoll() {
-    const hasPollStarted = await this.modPage.checkElement(e.pollMenuButton);
+  async openNewPoll() {
+    const hasPollStarted = await this.modPage.checkElement(e.cancelPollBtn);
     if (hasPollStarted) {
       await this.modPage.waitAndClick(e.cancelPollBtn);
-      await this.userPage.wasRemoved(e.pollingContainer);
+      await this.modPage.wasRemoved(e.publishPollingLabel, 'should not display the publish poll button after the poll is canceled');
+      await this.userPage.wasRemoved(e.pollingContainer, 'should not display the polling container after the poll is canceled');
     }
     await util.openPoll(this.modPage);
   }
 
   async getAnswerOptionCount() {
-    await this.userPage.waitForSelector(e.pollingContainer);
+    await this.userPage.hasElement(e.pollingContainer, 'should display the polling container for the attendee');
     return this.userPage.getSelectorCount(e.pollAnswerOptionBtn);
   }
 
@@ -324,9 +290,9 @@ class Polling extends MultiUsers {
   }
 
   async checkLastOptionText() {
-    await this.userPage.waitForSelector(e.pollingContainer);
+    await this.userPage.hasElement(e.pollingContainer, 'should display the polling container for the attendee');
     const lastOptionText = this.userPage.getLocatorByIndex(e.pollAnswerOptionBtn, -1);
-    await expect(lastOptionText).toHaveText(this.newInputText);
+    await expect(lastOptionText, 'should display the last option text for the attendee').toHaveText(this.newInputText);
   }
 }
 

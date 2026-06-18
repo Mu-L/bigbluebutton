@@ -1,10 +1,10 @@
 package org.bigbluebutton.core.apps.timer
 
 import org.bigbluebutton.common2.msgs._
-import org.bigbluebutton.core.bus.MessageBus
-import org.bigbluebutton.core.running.LiveMeeting
 import org.bigbluebutton.core.apps.{ PermissionCheck, RightsManagementTrait, TimerModel }
+import org.bigbluebutton.core.bus.MessageBus
 import org.bigbluebutton.core.db.TimerDAO
+import org.bigbluebutton.core.running.LiveMeeting
 
 trait StopTimerReqMsgHdlr extends RightsManagementTrait {
   this: TimerApp2x =>
@@ -33,10 +33,9 @@ trait StopTimerReqMsgHdlr extends RightsManagementTrait {
       val reason = "You need to be the presenter or moderator to stop timer"
       PermissionCheck.ejectUserForFailedPermission(meetingId, msg.header.userId, reason, bus.outGW, liveMeeting)
     } else {
-      TimerModel.setAccumulated(liveMeeting.timerModel, msg.body.accumulated)
-      TimerModel.setRunning(liveMeeting.timerModel, false)
+      TimerModel.setRunning(liveMeeting.timerModel, running = false)
       TimerDAO.update(liveMeeting.props.meetingProp.intId, liveMeeting.timerModel)
-      broadcastEvent(msg.body.accumulated)
+      broadcastEvent(TimerModel.getAccumulated(liveMeeting.timerModel))
     }
   }
 }

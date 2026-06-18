@@ -9,6 +9,7 @@ import {
   CAMERADOCK_POSITION,
 } from '/imports/ui/components/layout/enums';
 import { defaultsDeep } from '/imports/utils/array-utils';
+import Session from '/imports/ui/services/storage/in-memory';
 
 const windowWidth = () => window.document.documentElement.clientWidth;
 const windowHeight = () => window.document.documentElement.clientHeight;
@@ -111,6 +112,7 @@ const ParticipantsAndChatOnlyLayout = (props) => {
       fullscreenElement === 'Presentation'
       || fullscreenElement === 'Screenshare'
       || fullscreenElement === 'ExternalVideo'
+      || fullscreenElement === 'GenericContent'
     ) {
       mediaBounds.width = windowWidth();
       mediaBounds.height = windowHeight();
@@ -146,19 +148,23 @@ const ParticipantsAndChatOnlyLayout = (props) => {
     } = props;
     const { captionsMargin } = DEFAULT_VALUES;
 
-    const sidebarNavWidth = calculatesSidebarNavWidth();
-    const sidebarContentWidth = calculatesSidebarContentWidth(sidebarNavWidth.width);
+    const sidebarNavWidth = calculatesSidebarNavWidth(0);
+    const sidebarContentWidth = calculatesSidebarContentWidth(
+      sidebarNavWidth.horizontalSpaceOccupied,
+    );
     const sidebarNavBounds = calculatesSidebarNavBounds();
-    const sidebarContentBounds = calculatesSidebarContentBounds(sidebarNavWidth.width);
+    const sidebarContentBounds = calculatesSidebarContentBounds(
+      sidebarNavWidth.horizontalSpaceOccupied,
+    );
     const mediaAreaBounds = {
-      width: sidebarNavWidth.width + sidebarContentWidth.width,
+      width: sidebarNavWidth.horizontalSpaceOccupied + sidebarContentWidth.width,
       left: 0,
     };
     const navbarBounds = calculatesNavbarBounds(mediaAreaBounds);
     const actionbarBounds = calculatesActionbarBounds(mediaAreaBounds);
     const sidebarNavHeight = calculatesSidebarNavHeight(navbarBounds.height,
       actionbarBounds.height);
-    const sidebarSize = sidebarContentWidth.width + sidebarNavWidth.width;
+    const sidebarSize = sidebarContentWidth.width + sidebarNavWidth.horizontalSpaceOccupied;
     const mediaBounds = calculatesMediaBounds(mediaAreaBounds, sidebarSize);
     const sidebarContentHeight = calculatesSidebarContentHeight(navbarBounds.height,
       actionbarBounds.height);
@@ -216,16 +222,6 @@ const ParticipantsAndChatOnlyLayout = (props) => {
         tabOrder: DEFAULT_VALUES.sidebarNavTabOrder,
         isResizable: !isMobile && !isTablet,
         zIndex: sidebarNavBounds.zIndex,
-      },
-    });
-
-    layoutContextDispatch({
-      type: ACTIONS.SET_SIDEBAR_NAVIGATION_RESIZABLE_EDGE,
-      value: {
-        top: false,
-        right: !isRTL,
-        bottom: false,
-        left: isRTL,
       },
     });
 
@@ -335,6 +331,18 @@ const ParticipantsAndChatOnlyLayout = (props) => {
     });
 
     layoutContextDispatch({
+      type: ACTIONS.SET_GENERIC_CONTENT_OUTPUT,
+      value: {
+        display: false,
+        width: 0,
+        height: 0,
+        top: mediaBounds.top,
+        left: mediaBounds.left,
+        right: mediaBounds.right,
+      },
+    });
+
+    layoutContextDispatch({
       type: ACTIONS.SET_SHARED_NOTES_OUTPUT,
       value: {
         display: false,
@@ -363,49 +371,59 @@ const ParticipantsAndChatOnlyLayout = (props) => {
   }, []);
 
   const init = () => {
-    const { sidebarContentPanel } = sidebarContentInput;
+    const hasLayoutEngineLoadedOnce = Session.getItem('hasLayoutEngineLoadedOnce');
     layoutContextDispatch({
       type: ACTIONS.SET_LAYOUT_INPUT,
-      value: defaultsDeep(
-        {
-          sidebarNavigation: {
-            isOpen:
-              input.sidebarNavigation.isOpen || sidebarContentPanel !== PANELS.NONE || false,
-          },
-          sidebarContent: {
-            isOpen: sidebarContentPanel !== PANELS.NONE,
-            sidebarContentPanel,
-          },
-          SidebarContentHorizontalResizer: {
-            isOpen: false,
-          },
-          presentation: {
-            isOpen: false,
-            slidesLength: presentationInput.slidesLength,
-            currentSlide: {
-              ...presentationInput.currentSlide,
+      value: (prevInput) => {
+        const { sidebarContent, presentation } = prevInput;
+        const { sidebarContentPanel } = sidebarContent;
+        const sidebarContentPanelOverride = sidebarContentPanel === PANELS.NONE
+          ? PANELS.CHAT : sidebarContentPanel;
+        return defaultsDeep(
+          {
+            sidebarNavigation: {
+              isOpen: true,
             },
-            width: 0,
-            height: 0,
+            sidebarContent: {
+              isOpen: true,
+              sidebarContentPanel: sidebarContentPanelOverride,
+            },
+            SidebarContentHorizontalResizer: {
+              isOpen: false,
+            },
+            presentation: {
+              isOpen: false,
+              slidesLength: presentation.slidesLength,
+              currentSlide: {
+                ...presentation.currentSlide,
+              },
+              width: 0,
+              height: 0,
+            },
+            cameraDock: {
+              numCameras: 0,
+            },
+            externalVideo: {
+              hasExternalVideo: false,
+              width: 0,
+              height: 0,
+            },
+            genericMainContent: {
+              genericContentId: undefined,
+              width: 0,
+              height: 0,
+            },
+            screenShare: {
+              hasScreenShare: false,
+              width: 0,
+              height: 0,
+            },
           },
-          cameraDock: {
-            numCameras: 0,
-          },
-          externalVideo: {
-            hasExternalVideo: false,
-            width: 0,
-            height: 0,
-          },
-          screenShare: {
-            hasScreenShare: false,
-            width: 0,
-            height: 0,
-          },
-        },
-        INITIAL_INPUT_STATE,
-      ),
+          hasLayoutEngineLoadedOnce ? prevInput : INITIAL_INPUT_STATE,
+        );
+      },
     });
-    Session.set('layoutReady', true);
+    Session.setItem('layoutReady', true);
     throttledCalculatesLayout();
   };
 

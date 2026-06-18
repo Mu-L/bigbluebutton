@@ -1,16 +1,17 @@
-const { test } = require('@playwright/test');
+const { test } = require('../fixtures');
 const { SharedNotes } = require('./sharednotes');
+const { initializePages } = require('../core/helpers');
+const { fullyParallel } = require('../playwright.config');
 
-test.describe.parallel('Shared Notes', () => {
+test.describe('Shared Notes', { tag: '@ci' }, () => {
   const sharedNotes = new SharedNotes();
 
-  test.beforeAll(async ({ browser }) => {
-    const context = await browser.newContext();
-    const page = await context.newPage();
-    await sharedNotes.initModPage(page, true);
-    await sharedNotes.initUserPage(true, context);
+  test.describe.configure({ mode: fullyParallel ? 'parallel' : 'serial' });
+  test[fullyParallel ? 'beforeEach' : 'beforeAll'](async ({ browser }) => {
+    await initializePages(sharedNotes, browser, { isMultiUser: true });
   });
-  test('Open shared notes @ci', async () => {
+
+  test('Open shared notes', async () => {
     await sharedNotes.openSharedNotes();
   });
 
@@ -22,11 +23,11 @@ test.describe.parallel('Shared Notes', () => {
     await sharedNotes.formatTextInSharedNotes();
   });
 
-  test('Export shared notes @ci', async ({}, testInfo) => {
+  test('Export shared notes', async ({}, testInfo) => {
     await sharedNotes.exportSharedNotes(testInfo);
   });
 
-  test('Convert notes to whiteboard', async () => {
+  test('Convert notes to presentation', async () => {
     await sharedNotes.convertNotesToWhiteboard();
   });
 
@@ -38,6 +39,9 @@ test.describe.parallel('Shared Notes', () => {
     await sharedNotes.seeNotesWithoutEditPermission();
   });
 
+  // different failures in CI and local
+  // local: not able to click on "unpin" button
+  // CI: not restoring presentation for viewer after unpinning notes
   test('Pin and unpin notes onto whiteboard', async () => {
     await sharedNotes.pinAndUnpinNotesOntoWhiteboard();
   });

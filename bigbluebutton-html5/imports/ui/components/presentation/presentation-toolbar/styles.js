@@ -7,12 +7,14 @@ import {
   colorDanger,
   colorWhite,
   colorGrayDark,
+  toolbarButtonColorDisabled,
 } from '/imports/ui/stylesheets/styled-components/palette';
 import {
   whiteboardToolbarMargin,
   whiteboardToolbarPaddingSm,
   whiteboardToolbarPadding,
   borderSize,
+  lgBorderRadius,
   smPaddingY,
   borderSizeLarge,
   smPaddingX,
@@ -25,6 +27,7 @@ const PresentationToolbarWrapper = styled.div`
   z-index: 1;
   background-color: ${colorOffWhite};
   border-top: 1px solid ${colorBlueLightest};
+  border-radius: 0 0 ${lgBorderRadius} ${lgBorderRadius};
   min-width: fit-content;
   width: 100%;
   bottom: 0px;
@@ -38,8 +41,9 @@ const PresentationToolbarWrapper = styled.div`
     }
     border: 0;
     background-color: ${colorOffWhite};
+    color: ${toolbarButtonColor};
     cursor: pointer;
-    margin: 0 ${whiteboardToolbarMargin} 0 0;
+    margin: 0 0 0 0;
     padding: ${whiteboardToolbarPadding};
     padding-left: ${whiteboardToolbarPaddingSm};
 
@@ -97,7 +101,6 @@ const PresentationSlideControls = styled.div`
 const PrevSlideButton = styled(Button)`
   i {
     font-size: 1rem;
-    padding-left: 20%;
 
     [dir="rtl"] & {
       -webkit-transform: scale(-1, 1);
@@ -112,7 +115,6 @@ const PrevSlideButton = styled(Button)`
 const NextSlideButton = styled(Button)`
   i {
     font-size: 1rem;
-    padding-left: 60%;
     
     [dir="rtl"] & {
       -webkit-transform: scale(-1, 1);
@@ -278,6 +280,38 @@ const WBAccessButton = styled(Button)`
     background-color: ${colorOffWhite};
     border: 0;
   }
+
+  &:disabled {
+    color: ${toolbarButtonColorDisabled};
+  }
+`;
+
+const InfiniteWhiteboardButton = styled(Button)`
+  border: none !important;
+
+  svg {
+    [dir="rtl"] & {
+      -webkit-transform: scale(-1, 1);
+      -moz-transform: scale(-1, 1);
+      -ms-transform: scale(-1, 1);
+      -o-transform: scale(-1, 1);
+      transform: scale(-1, 1);
+    }
+  }
+
+  position: relative;
+  color: ${toolbarButtonColor};
+  background-color: ${colorOffWhite};
+  border-radius: 0;
+  box-shadow: none !important;
+  border: 0;
+  margin-left: 2px;
+  margin-right: 2px;
+
+  &:focus {
+    background-color: ${colorOffWhite};
+    border: 0;
+  }
 `;
 
 export default {
@@ -293,4 +327,5 @@ export default {
   MultiUserTool,
   WBAccessButton,
   MUTPlaceholder,
+  InfiniteWhiteboardButton,
 };

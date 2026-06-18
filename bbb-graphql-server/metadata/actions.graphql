@@ -37,8 +37,12 @@ type Mutation {
 
 type Mutation {
   breakoutRoomSendMessageToAll(
-    msg: String!
+    message: String!
   ): Boolean
+}
+
+type Mutation {
+  breakoutRoomSetInviteDismissed: Boolean
 }
 
 type Mutation {
@@ -60,6 +64,19 @@ type Mutation {
 }
 
 type Mutation {
+  cameraSetShowAsContent(
+    streamId: String!
+    showAsContent: Boolean!
+  ): Boolean
+}
+
+type Mutation {
+  captionAddLocale(
+    locale: String!
+  ): Boolean
+}
+
+type Mutation {
   captionSubmitText(
     transcriptId: String!
     start: Int!
@@ -72,8 +89,40 @@ type Mutation {
 }
 
 type Mutation {
+  captionSubmitTranscript(
+    transcriptId: String!
+    transcript: String!
+    locale: String!
+  ): Boolean
+}
+
+type Mutation {
   chatCreateWithUser(
     userId: String!
+  ): Boolean
+}
+
+type Mutation {
+  chatDeleteMessage(
+    chatId: String!
+    messageId: String!
+  ): Boolean
+}
+
+type Mutation {
+  chatDeleteMessageReaction(
+    chatId: String!
+    messageId: String!
+    reactionEmoji: String!
+    reactionEmojiId: String!
+  ): Boolean
+}
+
+type Mutation {
+  chatEditMessage(
+    chatId: String!
+    messageId: String!
+    chatMessageInMarkdownFormat: String!
   ): Boolean
 }
 
@@ -91,7 +140,22 @@ type Mutation {
   chatSendMessage(
     chatId: String!
     chatMessageInMarkdownFormat: String!
+    replyToMessageId: String
+    metadata: json
   ): Boolean
+}
+
+type Mutation {
+  chatSendMessageReaction(
+    chatId: String!
+    messageId: String!
+    reactionEmoji: String!
+    reactionEmojiId: String!
+  ): Boolean
+}
+
+type Mutation {
+  chatSetLastSeen: Boolean
 }
 
 type Mutation {
@@ -101,13 +165,13 @@ type Mutation {
 }
 
 type Mutation {
-  dispatchPluginDataChannelMessageMsg(
-    pluginName: String!
-    dataChannel: String!
-    payloadJson: String!
-    toRoles: [String]!
-    toUserIds: [String]!
+  chatSetVisible(
+    visible: Boolean!
   ): Boolean
+}
+
+type Mutation {
+  echoTestRunningAt: Boolean
 }
 
 type Mutation {
@@ -171,6 +235,12 @@ type Mutation {
 }
 
 type Mutation {
+  meetingLayoutSetScreenshareAsContent(
+    screenshareAsContent: Boolean!
+  ): Boolean
+}
+
+type Mutation {
   meetingLayoutSetSyncWithPresenterLayout(
     syncWithPresenterLayout: Boolean!
   ): Boolean
@@ -207,6 +277,59 @@ type Mutation {
 type Mutation {
   meetingSetWebcamOnlyForModerator(
     webcamsOnlyForModerator: Boolean!
+  ): Boolean
+}
+
+type Mutation {
+  pluginDataChannelDeleteEntry(
+    pluginName: String!
+    channelName: String!
+    subChannelName: String!
+    entryId: String!
+  ): Boolean
+}
+
+type Mutation {
+  pluginDataChannelPushEntry(
+    pluginName: String!
+    subChannelName: String!
+    channelName: String!
+    payloadJson: String!
+    toRoles: [String]!
+    toUserIds: [String]!
+  ): Boolean
+}
+
+type Mutation {
+  pluginDataChannelReplaceEntry(
+    pluginName: String!
+    subChannelName: String!
+    channelName: String!
+    entryId: String!
+    payloadJson: String!
+  ): Boolean
+}
+
+type Mutation {
+  pluginDataChannelReset(
+    pluginName: String!
+    channelName: String!
+    subChannelName: String!
+  ): Boolean
+}
+
+type Mutation {
+  pluginLearningAnalyticsDashboardSendGenericData(
+    genericDataForLearningAnalyticsDashboard: json!
+    pluginName: String!
+  ): Boolean
+}
+
+type Mutation {
+  pluginPersistEvent(
+    payloadJson: json!
+    eventName: String!
+    pluginName: String!
   ): Boolean
 }
 
@@ -261,7 +384,22 @@ type Mutation {
 type Mutation {
   presAnnotationSubmit(
     pageId: String!
-    annotations: [String]!
+    annotations: json!
+  ): Boolean
+}
+
+type Mutation {
+  presentationExport(
+    presentationId: String!
+    fileStateType: String!
+  ): Boolean
+}
+
+type Mutation {
+  presentationPublishCursor(
+    whiteboardId: String!
+    xPercent: Float!
+    yPercent: Float!
   ): Boolean
 }
 
@@ -301,7 +439,14 @@ type Mutation {
 }
 
 type Mutation {
-  presentationSetRenderedInToast(
+  presentationSetPageInfiniteWhiteboard(
+    infiniteWhiteboard: Boolean!
+    pageId: String!
+  ): Boolean
+}
+
+type Mutation {
+  presentationSetUploadCompletionNotified(
     presentationId: String!
   ): Boolean
 }
@@ -323,10 +468,6 @@ type Mutation {
     widthRatio: Float!
     heightRatio: Float!
   ): Boolean
-}
-
-type Mutation {
-  randomViewerPick: Boolean
 }
 
 type Mutation {
@@ -376,9 +517,7 @@ type Mutation {
 }
 
 type Mutation {
-  timerStop(
-    accumulated: Float!
-  ): Boolean
+  timerStop: Boolean
 }
 
 type Mutation {
@@ -419,6 +558,10 @@ type Mutation {
 }
 
 type Mutation {
+  userSendActivitySign: Boolean
+}
+
+type Mutation {
   userSetAway(
     away: Boolean!
   ): Boolean
@@ -428,6 +571,25 @@ type Mutation {
   userSetCameraPinned(
     userId: String!
     pinned: Boolean!
+  ): Boolean
+}
+
+type Mutation {
+  userSetCaptionLocale(
+    locale: String!
+    provider: String!
+  ): Boolean
+}
+
+type Mutation {
+  userSetClientSettings(
+    userClientSettingsJson: json!
+  ): Boolean
+}
+
+type Mutation {
+  userSetConnectionAlive(
+    networkRttInMs: Float!
   ): Boolean
 }
 
@@ -447,12 +609,6 @@ type Mutation {
   userSetLocked(
     userId: String!
     locked: Boolean!
-  ): Boolean
-}
-
-type Mutation {
-  userSetMobileFlag(
-    mobile: Boolean!
   ): Boolean
 }
 
@@ -493,6 +649,26 @@ type Mutation {
   userSetSpeechLocale(
     locale: String!
     provider: String!
+  ): Boolean
+}
+
+type Mutation {
+  userSetSpeechOptions(
+    partialUtterances: Boolean!
+    minUtteranceLength: Float!
+  ): Boolean
+}
+
+type Mutation {
+  userSetTalking(
+    talking: Boolean!
+  ): Boolean
+}
+
+type Mutation {
+  userSetUserLockSettings(
+    userId: String!
+    disablePubChat: Boolean!
   ): Boolean
 }
 

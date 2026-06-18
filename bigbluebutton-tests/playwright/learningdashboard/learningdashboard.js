@@ -4,7 +4,7 @@ const { openPublicChat } = require('../chat/util');
 const { expect } = require("@playwright/test");
 const Page = require("../core/page");
 const { sleep } = require("../core/helpers");
-const { ELEMENT_WAIT_EXTRA_LONG_TIME } = require("../core/constants");
+const { ELEMENT_WAIT_EXTRA_LONG_TIME, ELEMENT_WAIT_TIME } = require("../core/constants");
 const { openPoll, timeInSeconds, rowFilter } = require("./util");
 const { checkTextContent } = require('../core/util');
 
@@ -13,42 +13,47 @@ class LearningDashboard extends MultiUsers {
     super(browser, context);
   }
 
-  async getDashboardPage(context) {
-    await this.modPage.waitAndClick(e.manageUsers);
-
+  async getDashboardPage() {
     const [dashboardPage] = await Promise.all([
-      context.waitForEvent('page'),
-      this.modPage.waitAndClick(e.learningDashboard),
+      this.modPage.context.waitForEvent('page'),
+      this.modPage.waitAndClick(e.learningDashboardSidebarButton),
     ]);
-
     await expect(dashboardPage).toHaveTitle(/Dashboard/);
-    this.dashboardPage = new Page(context, dashboardPage);
+    this.dashboardPage = new Page(this.modPage.context, dashboardPage);
+    // ensure data is available
+    try {
+      await this.dashboardPage.hasElement(e.meetingDurationTimeDashboard, 'should display the meeting duration time', ELEMENT_WAIT_TIME);
+    } catch (err) {
+      console.log('Failed to load the dashboard page data, reloading...');
+      await this.dashboardPage.reloadPage();
+      await this.dashboardPage.hasElement(e.meetingDurationTimeDashboard, 'should display the meeting duration time');
+    }
   }
 
   async writeOnPublicChat() {
     await openPublicChat(this.modPage);
-    await this.modPage.checkElementCount(e.chatUserMessageText, 0);
+    await this.modPage.hasElementCount(e.chatUserMessageText, 0);
 
     await this.modPage.type(e.chatBox, e.message);
     await this.modPage.waitAndClick(e.sendButton);
-    await this.modPage.checkElementCount(e.chatUserMessageText, 1);
+    await this.modPage.hasElementCount(e.chatUserMessageText, 1);
     await this.dashboardPage.reloadPage();
-    await this.dashboardPage.hasText(e.messageLearningDashboard, '1', ELEMENT_WAIT_EXTRA_LONG_TIME);
+    await this.dashboardPage.hasText(e.messageLearningDashboard, '1', 'should display the correct amount of messages sent', ELEMENT_WAIT_EXTRA_LONG_TIME);
   }
 
   async userTimeOnMeeting() {
+    // start recording
     await this.modPage.waitAndClick(e.recordingIndicator);
-    await this.modPage.waitAndClick(e.confirmRecording);
-    await this.modPage.hasText(e.recordingIndicator, '00:0000:00');
-
+    await this.modPage.waitAndClick(e.confirmRecordingButton);
+    await this.modPage.hasText(e.recordingIndicator, '00:00');
     const timeLocator = this.dashboardPage.getLocator(e.userOnlineTime);
     const timeContent = await (timeLocator).textContent();
     const time = timeInSeconds(timeContent);
+    // reload page and check if time is greater
     await sleep(1000);
     await this.dashboardPage.reloadPage();
     const timeContentGreater = await (timeLocator).textContent();
     const timeGreater = timeInSeconds(timeContentGreater);
-
     await expect(timeGreater).toBeGreaterThan(time);
   }
 
@@ -60,7 +65,7 @@ class LearningDashboard extends MultiUsers {
     await this.modPage.waitAndClick(e.startPoll);
 
     await this.userPage.waitAndClick(e.pollAnswerOptionBtn);
-    await this.modPage.hasText(e.numberVotes, '1');
+    await this.modPage.hasText(e.userVoteLiveResult, 'True');
     await this.modPage.waitAndClick(e.cancelPollBtn);
 
     //ABCD
@@ -69,7 +74,7 @@ class LearningDashboard extends MultiUsers {
     await this.modPage.waitAndClick(e.pollLetterAlternatives);
     await this.modPage.waitAndClick(e.startPoll);
     await this.userPage.waitAndClick(e.pollAnswerOptionBtn);
-    await this.modPage.hasText(e.numberVotes, '1');
+    await this.modPage.hasText(e.userVoteLiveResult, 'A');
     await this.modPage.waitAndClick(e.cancelPollBtn);
 
     //Yes/No/Abstention
@@ -78,7 +83,7 @@ class LearningDashboard extends MultiUsers {
     await this.modPage.waitAndClick(e.pollYesNoAbstentionBtn);
     await this.modPage.waitAndClick(e.startPoll);
     await this.userPage.waitAndClick(e.pollAnswerOptionBtn);
-    await this.modPage.hasText(e.numberVotes, '1');
+    await this.modPage.hasText(e.userVoteLiveResult, 'Yes');
     await this.modPage.waitAndClick(e.cancelPollBtn);
 
     //User Response
@@ -89,7 +94,7 @@ class LearningDashboard extends MultiUsers {
     await this.userPage.waitForSelector(e.pollingContainer);
     await this.userPage.type(e.pollAnswerOptionInput, e.answerMessage);
     await this.userPage.waitAndClick(e.pollSubmitAnswer);
-    await this.modPage.hasText(e.numberVotes, '1');
+    await this.modPage.hasText(e.userVoteLiveResult, e.answerMessage);
     await this.modPage.waitAndClick(e.cancelPollBtn);
 
     //Checks
@@ -97,7 +102,7 @@ class LearningDashboard extends MultiUsers {
     const activityScore = await rowFilter(this.dashboardPage, 'tr', /Attendee/, e.userActivityScoreDashboard);
     await expect(activityScore).toHaveText(/2/, { timeout: ELEMENT_WAIT_EXTRA_LONG_TIME });
     await this.dashboardPage.waitAndClick(e.pollPanel);
-    await this.dashboardPage.hasText(e.pollTotal, '4', ELEMENT_WAIT_EXTRA_LONG_TIME);
+    await this.dashboardPage.hasText(e.pollTotal, '4', 'should display the correct amount of polls started in the session', ELEMENT_WAIT_EXTRA_LONG_TIME);
 
     //True / False
     await this.dashboardPage.hasText(e.pollTrueFalseQuestion, 'True/False?');
@@ -118,12 +123,13 @@ class LearningDashboard extends MultiUsers {
 
   async basicInfos() {
     // Meeting Status check
-    await this.dashboardPage.hasText(e.meetingStatusActiveDashboard, 'Active');
+    await this.dashboardPage.hasElement(e.meetingStatusActiveDashboard, 'should display the meeting status', ELEMENT_WAIT_EXTRA_LONG_TIME);
+    await this.dashboardPage.hasText(e.meetingStatusActiveDashboard, 'Active', 'should display "Active" status');
     await this.dashboardPage.reloadPage();
 
     // Meeting Time Duration check
     const timeLocator = this.dashboardPage.getLocator(e.meetingDurationTimeDashboard);
-    const timeContent = await (timeLocator).textContent();
+    const timeContent = await timeLocator.textContent();
     const array = timeContent.split(':').map(Number);
     const firstTime = array[1] * 3600 + array[2] * 60 + array[3];
     await sleep(10000);
@@ -131,14 +137,13 @@ class LearningDashboard extends MultiUsers {
     const timeContentGreater = await (timeLocator).textContent();
     const arrayGreater = timeContentGreater.split(':').map(Number);
     const secondTime = arrayGreater[1] * 3600 + arrayGreater[2] * 60 + arrayGreater[3];
-    
+
     await expect(secondTime).toBeGreaterThan(firstTime);
   }
 
   async overview() {
     await this.modPage.waitAndClick(e.joinVideo);
     await this.modPage.waitAndClick(e.startSharingWebcam);
-    await this.modPage.waitAndClick(e.reactionsButton);
     await this.modPage.waitAndClick(e.raiseHandBtn);
 
     await this.dashboardPage.reloadPage();
@@ -157,8 +162,7 @@ class LearningDashboard extends MultiUsers {
   }
 
   async downloadSessionLearningDashboard(testInfo) {
-    await this.modPage.waitAndClick(e.optionsButton);
-    await this.modPage.waitAndClick(e.logout);
+    await this.modPage.logoutFromMeeting();
     await this.modPage.waitAndClick('button');
 
     const downloadSessionLocator = this.dashboardPage.getLocator(e.downloadSessionLearningDashboard);
@@ -170,7 +174,7 @@ class LearningDashboard extends MultiUsers {
       'Talk time',
       'Webcam Time',
       'Messages',
-      'Emojis',
+      'Reactions',
       'Poll Votes',
       'Raise Hands',
       'Left',

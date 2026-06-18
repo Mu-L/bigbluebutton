@@ -1,12 +1,7 @@
 const { expect } = require('@playwright/test');
 const e = require('../core/elements');
 const c = require('./constants');
-const { ELEMENT_WAIT_TIME, ELEMENT_WAIT_LONGER_TIME } = require('../core/constants');
-
-async function forceListenOnly(test) {
-  await test.wasRemoved(e.echoYesButton);
-  await test.hasText(e.toastContainer, e.joiningMessageToast);
-}
+const { ELEMENT_WAIT_LONGER_TIME } = require('../core/constants');
 
 function hexToRgb(hex) {
   const bigint = parseInt(hex, 16);
@@ -46,8 +41,7 @@ async function zoomOut(test) {
 
 async function poll(page1, page2) {
   await page1.waitForSelector(e.whiteboard, ELEMENT_WAIT_LONGER_TIME);
-  await page1.waitAndClick(e.actions);
-  await page1.waitAndClick(e.polling);
+  await page1.waitAndClick(e.pollSidebarButton);
   await page1.waitAndClick(e.pollYesNoAbstentionBtn);
   await page1.waitAndClick(e.startPoll);
   await page2.waitForSelector(e.pollingContainer);
@@ -66,19 +60,19 @@ async function nextSlide(test) {
 async function annotation(test) {
   await test.waitAndClick(e.wbPencilShape);
   await test.waitAndClick(e.whiteboard);
-  await test.waitForSelector(e.wbDrawnLine);
+  await test.hasElement(e.wbPencilShape, 'should the presentation displays the tool drawn line');
 }
 
 function encodeCustomParams(param) {
   try {
-    let splited = param.split('=');
-    if (splited.length > 2) {
-      const aux = splited.shift();
-      splited[1] = splited.join('=');
-      splited[0] = aux;
+    let splitted = param.split('=');
+    if (splitted.length > 2) {
+      const aux = splitted.shift();
+      splitted[1] = splitted.join('=');
+      splitted[0] = aux;
     }
-    splited[1] = encodeURIComponent(splited[1]).replace(/%20/g, '+');
-    return splited.join('=');
+    splitted[1] = encodeURIComponent(splitted[1]).replace();
+    return splitted.join('=');
   } catch (err) {
     console.log(err);
   }
@@ -109,7 +103,6 @@ exports.previousSlide = previousSlide;
 exports.nextSlide = nextSlide;
 exports.annotation = annotation;
 exports.hexToRgb = hexToRgb;
-exports.forceListenOnly = forceListenOnly;
 exports.encodeCustomParams = encodeCustomParams;
 exports.getAllShortcutParams = getAllShortcutParams;
 exports.checkAccesskey = checkAccesskey;

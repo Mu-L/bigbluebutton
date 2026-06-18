@@ -7,10 +7,15 @@ on:
       - 'develop'
     paths:
       - 'docs/**'
+  pull_request:
+    branches:
+      - 'develop'
+    paths:
+      - 'docs/**'
 
 # Do not build the docs concurrently
 concurrency:
-  group: docs
+  group: docs-${{ github.event_name }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -22,10 +27,12 @@ jobs:
         working-directory: ./docs
     steps:
       # Setup
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v5
         with:
-          node-version: 20
+          fetch-depth: 0  # Needed for build.sh to access other branches/tags
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
           cache: npm
           cache-dependency-path: ./docs/package-lock.json
       - name: Install dependencies
@@ -37,13 +44,14 @@ jobs:
       - name: Build website
         run: npm run docusaurus build
       - name: upload build artifact
-        uses: actions/upload-pages-artifact@v1
+        uses: actions/upload-pages-artifact@v5
         with:
           path: ./docs/build
 
   deploy:
     name: Deploy docs to gh-pages
     needs: build
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
 
     permissions:
       pages: write
@@ -57,4 +65,4 @@ jobs:
     steps:
       - name: deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v1
+        uses: actions/deploy-pages@v5

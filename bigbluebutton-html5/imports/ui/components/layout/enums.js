@@ -6,6 +6,7 @@ export const LAYOUT_TYPE = {
   CAMERAS_ONLY: 'camerasOnly',
   PRESENTATION_ONLY: 'presentationOnly',
   PARTICIPANTS_AND_CHAT_ONLY: 'participantsAndChatOnly',
+  MEDIA_ONLY: 'mediaOnly',
 };
 
 export const DEVICE_TYPE = {
@@ -17,6 +18,8 @@ export const DEVICE_TYPE = {
 };
 
 export const SMALL_VIEWPORT_BREAKPOINT = 640;
+
+export const MEDIA_ONLY_LAYOUT_MARGIN = 10;
 
 export const CAMERADOCK_POSITION = {
   CONTENT_TOP: 'contentTop',
@@ -31,7 +34,21 @@ export const HIDDEN_LAYOUTS = [
   LAYOUT_TYPE.CAMERAS_ONLY,
   LAYOUT_TYPE.PRESENTATION_ONLY,
   LAYOUT_TYPE.PARTICIPANTS_AND_CHAT_ONLY,
+  LAYOUT_TYPE.MEDIA_ONLY,
 ];
+
+export const LAYOUT_ELEMENTS = {
+  LAYOUT_TYPE: 'layoutType',
+  PRESENTATION_STATE: 'presentationState',
+  FOCUSED_CAMERA: 'focusedCamera',
+  CAMERA_DOCK_SIZE: 'cameraDockSize',
+  CAMERA_DOCK_POSITION: 'cameradockPosition',
+};
+
+export const SYNC = {
+  PROPAGATE_ELEMENTS: 'propagateElements',
+  REPLICATE_ELEMENTS: 'replicateElements',
+};
 
 export const ACTIONS = {
   SET_AUTO_ARRANGE_LAYOUT: 'setAutoArrangeLayout',
@@ -44,7 +61,6 @@ export const ACTIONS = {
 
   SET_LAYOUT_INPUT: 'setLayoutInput',
 
-  SET_SIDEBAR_NAVIGATION_PANEL: 'setSidebarNavigationPanel',
   SET_SIDEBAR_CONTENT_PANEL: 'setSidebarcontentPanel',
 
   SET_ID_CHAT_OPEN: 'setIdChatOpen',
@@ -53,8 +69,10 @@ export const ACTIONS = {
 
   SET_HAS_BANNER_BAR: 'setHasBannerBar',
   SET_HAS_NOTIFICATIONS_BAR: 'setHasNotificationsBar',
+  SET_HIDE_NOTIFICATION_TOASTS: 'setHideNotificationToasts',
 
   SET_HAS_NAVBAR: 'setHasNavBar',
+  SET_HIDE_NAVBAR_TOP_ROW: 'setHideNavBarTopRow',
   SET_NAVBAR_OUTPUT: 'setNavBarOutput',
 
   SET_HAS_ACTIONBAR: 'setHasActionBar',
@@ -62,9 +80,10 @@ export const ACTIONS = {
 
   SET_SIDEBAR_NAVIGATION_IS_OPEN: 'setSidebarNavigationIsOpen',
   SET_SIDEBAR_NAVIGATION_SIZE: 'setSidebarNavigationSize',
+  REGISTER_SIDEBAR_APP: 'registerSidebarApp',
+  UNREGISTER_SIDEBAR_APP: 'unregisterSidebarApp',
+  SET_SIDEBAR_NAVIGATION_PIN_APP: 'setSidebarNavigationPinApp',
   SET_SIDEBAR_NAVIGATION_OUTPUT: 'setSidebarNavigationOutput',
-  SET_SIDEBAR_NAVIGATION_IS_RESIZABLE: 'setSidebarNavigationIsResizable',
-  SET_SIDEBAR_NAVIGATION_RESIZABLE_EDGE: 'setSidebarNavigationResizableEdge',
 
   SET_SIDEBAR_CONTENT_IS_OPEN: 'setSidebarContentIsOpen',
   SET_SIDEBAR_CONTENT_SIZE: 'setSidebarContentSize',
@@ -107,18 +126,39 @@ export const ACTIONS = {
   SET_EXTERNAL_VIDEO_SIZE: 'setExternalVideoSize',
   SET_EXTERNAL_VIDEO_OUTPUT: 'setExternalVideoOutput',
 
+  SET_HAS_GENERIC_CONTENT: 'setHasGenericContent',
+  SET_GENERIC_CONTENT_OUTPUT: 'setGenericContentOutput',
+
   SET_SHARED_NOTES_OUTPUT: 'setSharedNotesOutput',
   SET_NOTES_IS_PINNED: 'setNotesIsPinned',
+
+  SET_CAPTIONS_OUTPUT: 'setCaptionsOutput',
+
+  SET_PILE_CONTENT_FOR_PRESENTATION_AREA: 'setPileContentForPresentationArea',
+};
+
+export const PRESENTATION_AREA = {
+  GENERIC_CONTENT: 'genericContent',
+  PINNED_NOTES: 'pinnedNotes',
+  EXTERNAL_VIDEO: 'externalVideo',
+  SCREEN_SHARE: 'screenShare',
+  WHITEBOARD_OPEN: 'whiteboardOpen',
 };
 
 export const PANELS = {
+  PROFILE: 'profile',
   USERLIST: 'userlist',
   CHAT: 'chat',
-  POLL: 'poll',
-  CAPTIONS: 'captions',
-  BREAKOUT: 'breakoutroom',
   SHARED_NOTES: 'shared-notes',
+  APPS_GALLERY: 'apps-gallery',
+  POLL: 'poll',
+  BREAKOUT: 'breakoutroom',
+  LEARNING_DASHBOARD: 'learning-dashboard',
+  SETTINGS: 'settings',
+  CAPTIONS: 'captions',
   TIMER: 'timer',
+  GENERIC_CONTENT_SIDEKICK: 'generic-content-sidekick',
   WAITING_USERS: 'waiting-users',
+  AUDIO_CAPTIONS: 'audio-captions',
   NONE: 'none',
 };

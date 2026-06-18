@@ -15,11 +15,16 @@ import { joinListenOnly } from './service';
 import Styled from './styles';
 import InputStreamLiveSelectorContainer from './input-stream-live-selector/component';
 import { UPDATE_ECHO_TEST_RUNNING } from './queries';
+import connectionStatus from '/imports/ui/core/graphql/singletons/connectionStatus';
 
 const intlMessages = defineMessages({
   joinAudio: {
     id: 'app.audio.joinAudio',
     description: 'Join audio button label',
+  },
+  joinAudioAndSetActive: {
+    id: 'app.audio.joinAudioAndSetActive',
+    description: 'Join audio button label when user is away',
   },
   leaveAudio: {
     id: 'app.audio.leaveAudio',
@@ -40,7 +45,9 @@ interface AudioControlsProps {
   isConnected: boolean;
   disabled: boolean;
   isEchoTest: boolean;
-  updateEchoTestRunning: () => void,
+  updateEchoTestRunning: () => void;
+  away: boolean;
+  isConnecting?: boolean;
 }
 
 const AudioControls: React.FC<AudioControlsProps> = ({
@@ -49,12 +56,16 @@ const AudioControls: React.FC<AudioControlsProps> = ({
   inAudio,
   isEchoTest,
   updateEchoTestRunning,
+  away,
+  isConnecting,
 }) => {
   const intl = useIntl();
-  const joinAudioShourtcut = useShortcut('joinaudio');
+  const joinAudioShortcut = useShortcut('joinAudio');
   const echoTestIntervalRef = React.useRef<ReturnType<typeof setTimeout>>();
 
   const [isAudioModalOpen, setIsAudioModalOpen] = React.useState(false);
+  const [audioModalContent, setAudioModalContent] = React.useState<string | null>(null);
+  const [audioModalProps, setAudioModalProps] = React.useState<{ unmuteOnExit?: boolean } | null>(null);
 
   const handleJoinAudio = useCallback((connected: boolean) => {
     if (connected) {
@@ -64,25 +75,33 @@ const AudioControls: React.FC<AudioControlsProps> = ({
     }
   }, []);
 
+  const openAudioSettings = useCallback((props: { unmuteOnExit?: boolean } = {}) => {
+    setAudioModalContent('settings');
+    setAudioModalProps(props);
+    setIsAudioModalOpen(true);
+  }, []);
+
   const joinButton = useMemo(() => {
+    const joinAudioLabel = away ? intlMessages.joinAudioAndSetActive : intlMessages.joinAudio;
+
     return (
       // eslint-disable-next-line jsx-a11y/no-access-key
       <Button
         onClick={() => handleJoinAudio(isConnected)}
         disabled={disabled}
         hideLabel
-        aria-label={intl.formatMessage(intlMessages.joinAudio)}
-        label={intl.formatMessage(intlMessages.joinAudio)}
+        aria-label={intl.formatMessage(joinAudioLabel)}
+        label={intl.formatMessage(joinAudioLabel)}
         data-test="joinAudio"
         color="default"
-        ghost
         icon="no_audio"
         size="lg"
         circle
-        accessKey={joinAudioShourtcut}
+        accessKey={joinAudioShortcut}
+        loading={isConnecting}
       />
     );
-  }, [isConnected, disabled]);
+  }, [isConnected, disabled, joinAudioShortcut, away, intl.locale]);
 
   useEffect(() => {
     if (isEchoTest) {
@@ -94,40 +113,45 @@ const AudioControls: React.FC<AudioControlsProps> = ({
     }
   }, [isEchoTest]);
 
+  const setIsOpen = useCallback(() => {
+    setIsAudioModalOpen(false);
+    setAudioModalContent(null);
+    setAudioModalProps(null);
+  }, []);
+
   return (
     <Styled.Container>
-      {!inAudio ? joinButton : <InputStreamLiveSelectorContainer />}
-      {
-        isAudioModalOpen ? (
-          <AudioModalContainer
-            {...{
-              priority: 'low',
-              setIsOpen: () => setIsAudioModalOpen(false),
-              isOpen: isAudioModalOpen,
-            }}
-          />
-        ) : null
-      }
+      {!inAudio ? joinButton : <InputStreamLiveSelectorContainer openAudioSettings={openAudioSettings} />}
+      {isAudioModalOpen && (
+        <AudioModalContainer
+          priority="low"
+          setIsOpen={setIsOpen}
+          isOpen={isAudioModalOpen}
+          content={audioModalContent}
+          unmuteOnExit={audioModalProps?.unmuteOnExit}
+        />
+      )}
     </Styled.Container>
   );
 };
 
 export const AudioControlsContainer: React.FC = () => {
-  const { data: currentUser } = useCurrentUser((u: Partial<User>) => {
-    return {
-      presenter: u.presenter,
-      isModerator: u.isModerator,
-      locked: u?.locked ?? false,
-      voice: u.voice,
-    };
-  });
+  const { data: currentUser } = useCurrentUser((u: Partial<User>) => ({
+    presenter: u.presenter,
+    isModerator: u.isModerator,
+    locked: u?.locked ?? false,
+    voice: u.voice,
+    away: u.away,
+  }));
 
-  const { data: currentMeeting } = useMeeting((m: Partial<Meeting>) => {
-    return {
-      lockSettings: m.lockSettings,
-    };
-  });
-  const [updateEchoTestRunning] = useMutation(UPDATE_ECHO_TEST_RUNNING);
+  const { data: currentMeeting } = useMeeting((m: Partial<Meeting>) => ({
+    lockSettings: m.lockSettings,
+  }));
+  const [updateEchoTestRunningMutation] = useMutation(UPDATE_ECHO_TEST_RUNNING);
+
+  const updateEchoTestRunning = useCallback(() => {
+    updateEchoTestRunningMutation();
+  }, []);
 
   // I access the internal variable to get the makevar reference,
   // so we doesn't broke the client that uses the value directly
@@ -142,14 +166,19 @@ export const AudioControlsContainer: React.FC = () => {
   // @ts-ignore - temporary while hybrid (meteor+GraphQl)
   const isEchoTest = useReactiveVar(AudioManager._isEchoTest.value) as boolean;
 
+  const isClientConnected = useReactiveVar(connectionStatus.getConnectedStatusVar());
+
   if (!currentUser || !currentMeeting) return null;
+
   return (
     <AudioControls
-      inAudio={!!currentUser.voice ?? false}
+      inAudio={!!currentUser.voice}
       isConnected={isConnected}
-      disabled={isConnecting || isHangingUp}
+      disabled={(isConnecting || isHangingUp || !isClientConnected)}
       isEchoTest={isEchoTest}
       updateEchoTestRunning={updateEchoTestRunning}
+      away={currentUser.away ?? false}
+      isConnecting={isConnecting}
     />
   );
 };

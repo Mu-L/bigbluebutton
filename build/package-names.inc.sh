@@ -1,6 +1,6 @@
 declare -A DEBNAME_TO_SOURCEDIR
 
-DEBNAME_TO_SOURCEDIR[bbb-apps-akka]="akka-bbb-apps bbb-common-message"
+DEBNAME_TO_SOURCEDIR[bbb-apps-akka]="akka-bbb-apps bbb-common-message bbb-common-grpc"
 DEBNAME_TO_SOURCEDIR[bbb-config]="bigbluebutton-config"
 DEBNAME_TO_SOURCEDIR[bbb-etherpad]="bbb-etherpad"
 DEBNAME_TO_SOURCEDIR[bbb-export-annotations]="bbb-export-annotations"
@@ -11,9 +11,9 @@ DEBNAME_TO_SOURCEDIR[bbb-graphql-actions]="bbb-graphql-actions"
 DEBNAME_TO_SOURCEDIR[bbb-graphql-middleware]="bbb-graphql-middleware"
 DEBNAME_TO_SOURCEDIR[bbb-graphql-server]="bbb-graphql-server"
 DEBNAME_TO_SOURCEDIR[bbb-html5]="bigbluebutton-html5"
-DEBNAME_TO_SOURCEDIR[bbb-html5-nodejs]="do_not_copy_anything"
 DEBNAME_TO_SOURCEDIR[bbb-learning-dashboard]="bbb-learning-dashboard"
 DEBNAME_TO_SOURCEDIR[bbb-libreoffice-docker]="bbb-libreoffice"
+DEBNAME_TO_SOURCEDIR[bbb-livekit]="bbb-livekit"
 DEBNAME_TO_SOURCEDIR[bbb-mkclean]="do_not_copy_anything"
 DEBNAME_TO_SOURCEDIR[bbb-pads]="bbb-pads"
 DEBNAME_TO_SOURCEDIR[bbb-playback]="bbb-playback"

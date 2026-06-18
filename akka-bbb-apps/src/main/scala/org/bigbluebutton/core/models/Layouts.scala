@@ -1,9 +1,9 @@
 package org.bigbluebutton.core.models
 
-import scala.collection.mutable.Map
+import scala.collection.mutable
 
 object Layouts {
-  def setCurrentLayout(instance: Layouts, layout: String) {
+  def setCurrentLayout(instance: Layouts, layout: String): Unit = {
     instance.currentLayout = layout
   }
 
@@ -11,7 +11,7 @@ object Layouts {
     instance.currentLayout
   }
 
-  def setPushLayout(instance: Layouts, pushLayout: Boolean) {
+  def setPushLayout(instance: Layouts, pushLayout: Boolean): Unit = {
     instance.pushLayout = pushLayout
   }
 
@@ -59,6 +59,14 @@ object Layouts {
     instance.presentationVideoRate
   }
 
+  def setScreenshareAsContent(instance: Layouts, screenshareAsContent: Boolean) = {
+    instance.screenshareAsContent = screenshareAsContent
+  }
+
+  def getScreenshareAsContent(instance: Layouts): Boolean = {
+    instance.screenshareAsContent
+  }
+
   def setRequestedBy(instance: Layouts, setBy: String) = {
     instance.setByUser = setBy;
   }
@@ -74,13 +82,14 @@ class Layouts {
   private var pushLayout: Boolean = false;
   private var presentationIsOpen: Boolean = true;
   private var isResizing: Boolean = false;
-  private var cameraPosition: String = "";
-  private var focusedCamera: String = "";
+  private var cameraPosition: String = "contentTop";
+  private var focusedCamera: String = "none";
   private var presentationVideoRate: Double = 0;
+  private var screenshareAsContent: Boolean = false;
 }
 
 object LayoutsType {
-  val layoutsType = Map(
+  val layoutsType = mutable.Map(
     "custom" -> "CUSTOM_LAYOUT",
     "smart" -> "SMART_LAYOUT",
     "presentationFocus" -> "PRESENTATION_FOCUS",

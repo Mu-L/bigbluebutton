@@ -1,10 +1,7 @@
 package org.bigbluebutton.core.db
 
-import slick.jdbc.PostgresProfile.api._
 import org.bigbluebutton.core.models.GroupChat
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.{ Failure, Success }
+import slick.jdbc.PostgresProfile.api._
 
 case class ChatDbModel(
     chatId:       String,
@@ -19,12 +16,14 @@ class ChatDbTableDef(tag: Tag) extends Table[ChatDbModel](tag, None, "chat") {
   val access = column[String]("access")
   val createdBy = column[String]("createdBy")
   //  val meeting = foreignKey("chat_meeting_fk", (meetingId), ChatDbTableDef.meetings)(_.meetingId, onDelete = ForeignKeyAction.Cascade)
-  override def * = (chatId, meetingId, access, createdBy) <> (ChatDbModel.tupled, ChatDbModel.unapply)
+  override def * = (
+    chatId, meetingId, access, createdBy
+  ) .<> (ChatDbModel.tupled, ChatDbModel.unapply)
 }
 
 object ChatDAO {
   def insert(meetingId: String, groupChat: GroupChat) = {
-    DatabaseConnection.db.run(
+    DatabaseConnection.enqueue(
       TableQuery[ChatDbTableDef].insertOrUpdate(
         ChatDbModel(
           chatId = groupChat.id,
@@ -33,18 +32,12 @@ object ChatDAO {
           createdBy = groupChat.createdBy.id,
         )
       )
-    ).onComplete {
-        case Success(rowsAffected) => {
-          DatabaseConnection.logger.debug(s"$rowsAffected row(s) inserted on Chat table!")
+    )
 
-          for {
-            user <- groupChat.users
-          } yield {
-            ChatUserDAO.insert(meetingId, groupChat.id, user, visible = groupChat.createdBy.id == user.id)
-          }
-
-        }
-        case Failure(e)            => DatabaseConnection.logger.debug(s"Error inserting Chat: $e")
-      }
+    for {
+      user <- groupChat.users
+    } yield {
+      ChatUserDAO.insert(meetingId, groupChat.id, user, visible = groupChat.createdBy.id == user.id)
+    }
   }
 }

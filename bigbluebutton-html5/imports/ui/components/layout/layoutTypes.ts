@@ -1,3 +1,5 @@
+import * as ReactDOM from 'react-dom/client';
+
 interface ActionBar {
     hasActionBar?: boolean;
     height: number;
@@ -9,6 +11,15 @@ interface ActionBar {
     tabOrder?: number;
     top?: number;
     zIndex?: number
+}
+
+interface PresentationAreaContentActions {
+    type: string,
+    value: {
+        content: string,
+        open: boolean,
+        genericContentId?: string;
+    },
 }
 
 interface ResizableEdge {
@@ -48,6 +59,15 @@ interface CameraDock {
     isResizable?: boolean;
     resizableEdge?: ResizableEdge;
     tabOrder?: number;
+    presenterMaxWidth: number;
+    maxWidth: number;
+    maxHeight: number;
+    minHeight: number;
+    minWidth: number;
+    left: number;
+    top: number;
+    right: number;
+    zIndex: number;
 }
 
 export interface ExternalVideo {
@@ -63,8 +83,23 @@ export interface ExternalVideo {
     zIndex?: number;
     right?: number;
 }
+
+export interface GenericContentMainArea {
+    genericContentId?: string;
+    browserHeight?: number;
+    browserWidth?: number;
+    height: number;
+    width: number;
+    display?: boolean;
+    left?: number;
+    tabOrder?: number;
+    top?: number;
+    zIndex?: number;
+    right?: number;
+}
 interface NavBar {
     hasNavBar?: boolean;
+    hideTopRow: boolean;
     height: number;
     display?: boolean;
     left?: number;
@@ -76,6 +111,7 @@ interface NavBar {
 
 interface NotificationsBar {
     hasNotification: boolean;
+    hideNotificationToasts: boolean;
 }
 
 interface Size {
@@ -157,23 +193,37 @@ interface SidebarContentHorizontalResizer {
     width: number;
 }
 
-interface SidebarNavigation {
+interface Widget {
+    name: string;
+    icon: string;
+}
+
+export interface NativeWidget extends Widget {}
+
+export interface InjectedWidget extends Widget {
+    contentFunction: (element: HTMLElement) => ReactDOM.Root;
+}
+
+export interface InjectedAppGalleryItem extends Widget {
+    onClick: () => void;
+}
+
+export interface registeredApps {
+    [key: string]: NativeWidget | InjectedWidget | InjectedAppGalleryItem;
+}
+
+export interface SidebarNavigation {
     browserWidth?: number;
     isOpen?: boolean;
-    sidebarNavPanel?: string;
     width: number;
     height: number;
     display?: boolean;
-    isResizable?: boolean;
     left?: number;
-    maxHeight?: number;
-    maxWidth?: number;
-    minHeight?: number;
-    minWidth?: number;
-    resizableEdge?: ResizableEdge;
     tabOrder?: number;
     top?: number;
     zIndex?: number;
+    registeredApps?: registeredApps;
+    pinnedApps?: string[];
 }
 
 interface Fullscreen {
@@ -214,8 +264,9 @@ interface Input {
     bannerBar: BannerBar;
     browser: Browser;
     cameraDock: CameraDock
-    customParameters: NonNullable<unknown>;
-    externalVideo: ExternalVideo
+    userMetadata: NonNullable<unknown>;
+    externalVideo: ExternalVideo;
+    genericMainContent: GenericContentMainArea;
     navBar: NavBar;
     notificationsBar: NotificationsBar;
     presentation: Presentation;
@@ -228,20 +279,22 @@ interface Input {
 
 interface Output {
     actionBar: ActionBar;
-cameraDock: CameraDock;
-captions: Captions;
-dropZoneAreas: DropzoneAreas;
-externalVideo: ExternalVideo;
-mediaArea: Size;
-navBar: NavBar;
-presentation: Presentation;
-screenShare: ScreenShare;
-sharedNotes: SharedNotes;
-sidebarContent: SidebarContent;
-sidebarNavigation: SidebarNavigation;
+    cameraDock: CameraDock;
+    captions: Captions;
+    dropZoneAreas: DropzoneAreas;
+    externalVideo: ExternalVideo;
+    genericMainContent: GenericContentMainArea;
+    mediaArea: Size;
+    navBar: NavBar;
+    presentation: Presentation;
+    screenShare: ScreenShare;
+    sharedNotes: SharedNotes;
+    sidebarContent: SidebarContent;
+    sidebarNavigation: SidebarNavigation;
 }
 
 interface Layout {
+    presentationAreaContentActions: PresentationAreaContentActions[];
     deviceType: string;
     fontSize: number;
     fullscreen: Fullscreen;
@@ -252,4 +305,16 @@ interface Layout {
     output: Output;
 }
 
-export { Input, Layout, Output };
+interface ActionForDispatcher {
+  type: string;
+  value: object | boolean | string;
+}
+
+type DispatcherFunction = (action: ActionForDispatcher) => void;
+
+export {
+  Input,
+  Layout,
+  Output,
+  DispatcherFunction,
+};
